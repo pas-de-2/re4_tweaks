@@ -194,6 +194,8 @@ public:
 	bool bTrainerDisableEnemySpawn = false;
 	bool bTrainerDeadBodiesNeverDisappear = false;
 	bool bTrainerAllowEnterDoorsWithoutAsh = false;
+	bool bTrainerOverrideDynamicDifficulty = false;
+	int iTrainerDynamicDifficultyLevel = 5;
 
 	// WARNING
 	bool bIgnoreFPSWarning = false;

@@ -650,6 +650,12 @@ void Trainer_Update()
 	if (!player)
 		return;
 
+	// Handle the Dynamic Difficulty Level override
+	if (pConfig->bTrainerOverrideDynamicDifficulty)
+	{
+		GlobalPtr()->dynamicDifficultyPoints_4F94 = pConfig->iTrainerDynamicDifficultyLevel * 1000 + 500;
+	}
+
 	// Player speed override handling
 	{
 		static bool prev_bPlayerSpeedOverride = false;
@@ -1432,6 +1438,26 @@ void Trainer_RenderUI(int columnCount)
 				if (ImGui::Button("Teleport Ashley to camera##freecam"))
 					bRequestedAshleyTPtoCam = true;
 
+				ImGui::EndDisabled();
+			}
+
+			// Dynamic Difficulty Slider
+			{
+				ImGui_ColumnSwitch();
+
+				ImGui::Checkbox("Enable Difficult Level Override", &pConfig->bTrainerOverrideDynamicDifficulty);
+
+				ImGui_ItemSeparator();
+
+				ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+
+				ImGui::TextWrapped("Allows overriding the dynamic difficulty level.");
+				ImGui::TextWrapped("10 = professional mode");
+
+				ImGui::Spacing();
+
+				ImGui::BeginDisabled(!pConfig->bTrainerOverrideDynamicDifficulty);
+				ImGui::SliderInt("", &pConfig->iTrainerDynamicDifficultyLevel, 1, 10);
 				ImGui::EndDisabled();
 			}
 
