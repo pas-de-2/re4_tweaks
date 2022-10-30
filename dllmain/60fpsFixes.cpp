@@ -19,6 +19,16 @@ void NowLoadingOff_Hook()
 {
 	NowLoadingOff();
 
+	// Disable Ada's knife on level load 
+	bool knifeDisabled = false;
+	PlayerCharacter curPlType = GlobalPtr()->pl_type_4FC8;
+	if (curPlType == PlayerCharacter::Ada)
+	{
+		bool inSeparateWays = FlagIsSet(GlobalPtr()->Flags_SYSTEM_0_54, uint32_t(Flags_SYSTEM::SYS_PS2_ADA_GAME));
+		knifeDisabled = (pConfig->bDisableAdaKnifeGC && !inSeparateWays) || (pConfig->bDisableAdaKnifePS2 && inSeparateWays);
+	}
+	FlagSet(SystemSavePtr()->flags_CONFIG_0, uint32_t(Flags_CONFIG::CFG_KNIFE_MODE), knifeDisabled);
+
 	// Enable model hack for 1 tick after loading
 	// Forces game to fully process all models (rendering etc)
 	// Without this game could lag significantly when many newly-seen models are on screen

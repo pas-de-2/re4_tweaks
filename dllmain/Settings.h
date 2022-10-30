@@ -104,6 +104,8 @@ public:
 	bool bSkipMenuLogo = true;
 	bool bEnableDebugMenu = false;
 	bool bEnableModExpansion = false;
+	bool bDisableAdaKnifeGC = true;
+	bool bDisableAdaKnifePS2 = false;
 
 	// MEMORY
 	bool bAllowHighResolutionSFD = true;

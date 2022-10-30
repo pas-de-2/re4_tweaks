@@ -1349,6 +1349,24 @@ void cfgMenuRender()
 						ImGui::TextWrapped("Only needed when using mods that specifically require it, otherwise should be left disabled.");
 					}
 
+					// DisableAdaKnife
+					{
+						ImGui_ColumnSwitch();
+
+						pConfig->HasUnsavedChanges |= ImGui::Checkbox("DisableAdaKnifeGC", &pConfig->bDisableAdaKnifeGC);
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Disable's Ada's knife in Assignment Ada and The Mercenaries.");
+						ImGui::TextWrapped("(Ada didn't have a knife in these modes until the Wii port of the game)");
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+
+						pConfig->HasUnsavedChanges |= ImGui::Checkbox("DisableAdaKnifePS2", &pConfig->bDisableAdaKnifePS2);
+						ImGui::TextWrapped("Disable's Ada's knife in Separate Ways.");
+					}
+
 					ImGui_ColumnFinish();
 					ImGui::EndTable();
 				}

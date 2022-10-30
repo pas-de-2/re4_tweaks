@@ -324,6 +324,8 @@ void Config::ReadSettings(std::string_view ini_path)
 	pConfig->bSkipMenuLogo = iniReader.ReadBoolean("MISC", "SkipMenuLogo", pConfig->bSkipMenuLogo);
 	pConfig->bEnableDebugMenu = iniReader.ReadBoolean("MISC", "EnableDebugMenu", pConfig->bEnableDebugMenu);
 	pConfig->bEnableModExpansion = iniReader.ReadBoolean("MISC", "EnableModExpansion", pConfig->bEnableModExpansion);
+	pConfig->bDisableAdaKnifeGC = iniReader.ReadBoolean("MISC", "DisableAdaKnifeGC", pConfig->bDisableAdaKnifeGC);
+	pConfig->bDisableAdaKnifePS2 = iniReader.ReadBoolean("MISC", "DisableAdaKnifePS2", pConfig->bDisableAdaKnifePS2);
 
 	// MEMORY
 	pConfig->bAllowHighResolutionSFD = iniReader.ReadBoolean("MEMORY", "AllowHighResolutionSFD", pConfig->bAllowHighResolutionSFD);
@@ -763,6 +765,8 @@ void WriteSettings(std::string_view iniPath, bool trainerIni)
 	iniReader.WriteBoolean("MISC", "SkipMenuLogo", pConfig->bSkipMenuLogo);
 	iniReader.WriteBoolean("MISC", "EnableDebugMenu", pConfig->bEnableDebugMenu);
 	iniReader.WriteBoolean("MISC", "EnableModExpansion", pConfig->bEnableModExpansion);
+	iniReader.WriteBoolean("MISC", "DisableAdaKnifeGC", pConfig->bDisableAdaKnifeGC);
+	iniReader.WriteBoolean("MISC", "DisableAdaKnifePS2", pConfig->bDisableAdaKnifePS2);
 
 	// MEMORY
 	iniReader.WriteBoolean("MEMORY", "AllowHighResolutionSFD", pConfig->bAllowHighResolutionSFD);
@@ -926,6 +930,8 @@ void Config::LogSettings()
 	spd::log()->info("| {:<30} | {:>15} |", "SkipMenuLogo", pConfig->bSkipMenuLogo ? "true" : "false");
 	spd::log()->info("| {:<30} | {:>15} |", "EnableDebugMenu", pConfig->bEnableDebugMenu ? "true" : "false");
 	spd::log()->info("| {:<30} | {:>15} |", "EnableModExpansion", pConfig->bEnableModExpansion ? "true" : "false");
+	spd::log()->info("| {:<30} | {:>15} |", "DisableAdaKnifeGC", pConfig->bDisableAdaKnifeGC ? "true" : "false");
+	spd::log()->info("| {:<30} | {:>15} |", "DisableAdaKnifePS2", pConfig->bDisableAdaKnifePS2 ? "true" : "false");
 	spd::log()->info("+--------------------------------+-----------------+");
 
 	// MEMORY

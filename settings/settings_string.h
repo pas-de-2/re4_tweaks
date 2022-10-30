@@ -287,6 +287,11 @@ EnableDebugMenu = false
 ; (modders that require this to be enabled can force it by including a override INI with their mod, see "re4_tweaks/setting_overrides/overrides_info.txt" file)
 EnableModExpansion = false
 
+; Disable's Ada's knife in Assignment Ada and The Mercenaries. Ada didn't have a knife in these modes until the Wii port of the game.
+DisableAdaKnifeGC = true
+; Disable's Ada's knife in Separate Ways.
+DisableAdaKnifePS2 = false
+)"""" R""""(
 [MEMORY]
 ; Allocate more memory for SFD movie files, and properly scale its resolution display above 512x336.
 ; Not tested beyond 1920x1080.
