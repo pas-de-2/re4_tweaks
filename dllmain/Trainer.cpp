@@ -728,6 +728,16 @@ void Trainer_Update()
 	if (!player)
 		return;
 
+	// Handle the Dynamic Difficulty Level override
+	// currently only works in normal mode and Separate Ways
+	// https://residentevil.fandom.com/wiki/Game_Rank_(RE4)
+	if (pConfig->bTrainerOverrideDynamicDifficulty)
+	{
+		GlobalPtr()->dynamicDifficultyPoints_4F94 = pConfig->iTrainerDynamicDifficultyLevel * 1000 + 500;
+		// professional mode assigns this directly, so we might have to as well
+		//GlobalPtr()->dynamicDifficultyLevel_4F98 = pConfig->iTrainerDynamicDifficultyLevel;
+	}
+
 	// Player speed override handling
 	{
 		static bool prev_bPlayerSpeedOverride = false;
@@ -1538,6 +1548,26 @@ void Trainer_RenderUI(int columnCount)
 					pConfig->fTrainerPlayerSpeedOverride = 1.0f;
 					pConfig->HasUnsavedChanges = true;
 				}
+				ImGui::EndDisabled();
+			}
+
+			// Dynamic Difficulty Slider
+			{
+				ImGui_ColumnSwitch();
+
+				ImGui::Checkbox("Enable Difficulty Level Override", &pConfig->bTrainerOverrideDynamicDifficulty);
+
+				ImGui_ItemSeparator();
+
+				ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+
+				ImGui::TextWrapped("Allows overriding the dynamic difficulty level.");
+				ImGui::TextWrapped("(Effects enemy health, damage, speed, and aggression)");
+
+				ImGui::Spacing();
+
+				ImGui::BeginDisabled(!pConfig->bTrainerOverrideDynamicDifficulty);
+				ImGui::SliderInt("", &pConfig->iTrainerDynamicDifficultyLevel, 1, 10);
 				ImGui::EndDisabled();
 			}
 
