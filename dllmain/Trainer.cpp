@@ -715,6 +715,41 @@ void Trainer_Init()
 		auto pattern = hook::pattern("83 C4 18 6A 01 E8 ? ? ? ? 83 C4 04 3C 01");
 		InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(0x5)).as_int(), DebugTrg_hook, PATCH_JUMP);
 	}
+
+	// Dynamic Difficulty Slider
+	{
+		// Hook near the end of GameAddPoint
+		auto pattern = hook::pattern("8B C2 C1 E8 1F 03 C2 88 81 98 4F 00 00");
+		struct DynamicDifficultyOverride
+		{
+			void operator()(injector::reg_pack& regs)
+			{
+				if (pConfig->bTrainerOverrideDynamicDifficulty)
+				{
+					GlobalPtr()->dynamicDifficultyPoints_4F94 = pConfig->iTrainerDynamicDifficultyLevel * 1000 + 500;
+					// update the edx register for the coming DynamicDifficultyLevel assignment
+					regs.edx = (int)((unsigned __int64)(0x10624DD3i64 * GlobalPtr()->dynamicDifficultyPoints_4F94 >> 0x20)) >> 6;
+				}
+
+				// Code that we overwrote
+				regs.eax = regs.edx + (regs.edx >> 31);
+			}
+		}; injector::MakeInline<DynamicDifficultyOverride>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(7));
+
+		// Professional mode exits GameAddPoint early, so we need to take a different route through the switch at 63B22E
+		pattern = hook::pattern("0F B6 81 7C 84 00 00 48 74 2F");
+		struct ProfessionalModeOverride
+		{
+			void operator()(injector::reg_pack& regs)
+			{
+				if (pConfig->bTrainerOverrideDynamicDifficulty)
+					regs.ef |= (1 << regs.zero_flag); // set the zero flag so we exit the switch early through the VERYEASY case
+
+				// Code that we overwrote
+				__asm {movzx eax, byte ptr[ecx + 0x847C]}
+			}
+		}; injector::MakeInline<ProfessionalModeOverride>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(7));
+	}
 }
 
 void Trainer_Update()
@@ -727,16 +762,6 @@ void Trainer_Update()
 	cPlayer* player = PlayerPtr();
 	if (!player)
 		return;
-
-	// Handle the Dynamic Difficulty Level override
-	// currently only works in normal mode and Separate Ways
-	// https://residentevil.fandom.com/wiki/Game_Rank_(RE4)
-	if (pConfig->bTrainerOverrideDynamicDifficulty)
-	{
-		GlobalPtr()->dynamicDifficultyPoints_4F94 = pConfig->iTrainerDynamicDifficultyLevel * 1000 + 500;
-		// professional mode assigns this directly, so we might have to as well
-		//GlobalPtr()->dynamicDifficultyLevel_4F98 = pConfig->iTrainerDynamicDifficultyLevel;
-	}
 
 	// Player speed override handling
 	{
