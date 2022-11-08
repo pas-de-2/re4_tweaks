@@ -320,9 +320,10 @@ void Config::ReadSettings(std::string_view ini_path)
 	pConfig->bDisableQTE = iniReader.ReadBoolean("MISC", "DisableQTE", pConfig->bDisableQTE);
 	pConfig->bAutomaticMashingQTE = iniReader.ReadBoolean("MISC", "AutomaticMashingQTE", pConfig->bAutomaticMashingQTE);
 	pConfig->bSkipIntroLogos = iniReader.ReadBoolean("MISC", "SkipIntroLogos", pConfig->bSkipIntroLogos);
-	pConfig->bSkipMenuLogo = iniReader.ReadBoolean("MISC", "SkipMenuLogo", pConfig->bSkipMenuLogo);
+	pConfig->bSkipMenuFades = iniReader.ReadBoolean("MISC", "SkipMenuFades", pConfig->bSkipMenuFades);
 	pConfig->bEnableDebugMenu = iniReader.ReadBoolean("MISC", "EnableDebugMenu", pConfig->bEnableDebugMenu);
 	pConfig->bEnableModExpansion = iniReader.ReadBoolean("MISC", "EnableModExpansion", pConfig->bEnableModExpansion);
+	pConfig->bForceETSApplyScale = iniReader.ReadBoolean("MISC", "ForceETSApplyScale", pConfig->bForceETSApplyScale);
 
 	// MEMORY
 	pConfig->bAllowHighResolutionSFD = iniReader.ReadBoolean("MEMORY", "AllowHighResolutionSFD", pConfig->bAllowHighResolutionSFD);
@@ -770,9 +771,10 @@ void WriteSettings(std::string_view iniPath, bool trainerIni)
 	iniReader.WriteBoolean("MISC", "DisableQTE", pConfig->bDisableQTE);
 	iniReader.WriteBoolean("MISC", "AutomaticMashingQTE", pConfig->bAutomaticMashingQTE);
 	iniReader.WriteBoolean("MISC", "SkipIntroLogos", pConfig->bSkipIntroLogos);
-	iniReader.WriteBoolean("MISC", "SkipMenuLogo", pConfig->bSkipMenuLogo);
+	iniReader.WriteBoolean("MISC", "SkipMenuFades", pConfig->bSkipMenuFades);
 	iniReader.WriteBoolean("MISC", "EnableDebugMenu", pConfig->bEnableDebugMenu);
-	iniReader.WriteBoolean("MISC", "EnableModExpansion", pConfig->bEnableModExpansion);
+	// Not writing EnableModExpansion / ForceETSApplyScale back to users INI in case those were enabled by a mod override INI (which the user might want to remove later)
+	// We don't have any UI options for those anyway, so pointless for us to write it back
 
 	// MEMORY
 	iniReader.WriteBoolean("MEMORY", "AllowHighResolutionSFD", pConfig->bAllowHighResolutionSFD);
@@ -934,9 +936,10 @@ void Config::LogSettings()
 	spd::log()->info("| {:<30} | {:>15} |", "DisableQTE", pConfig->bDisableQTE ? "true" : "false");
 	spd::log()->info("| {:<30} | {:>15} |", "AutomaticMashingQTE", pConfig->bAutomaticMashingQTE ? "true" : "false");
 	spd::log()->info("| {:<30} | {:>15} |", "SkipIntroLogos", pConfig->bSkipIntroLogos ? "true" : "false");
-	spd::log()->info("| {:<30} | {:>15} |", "SkipMenuLogo", pConfig->bSkipMenuLogo ? "true" : "false");
+	spd::log()->info("| {:<30} | {:>15} |", "SkipMenuFades", pConfig->bSkipMenuFades ? "true" : "false");
 	spd::log()->info("| {:<30} | {:>15} |", "EnableDebugMenu", pConfig->bEnableDebugMenu ? "true" : "false");
 	spd::log()->info("| {:<30} | {:>15} |", "EnableModExpansion", pConfig->bEnableModExpansion ? "true" : "false");
+	spd::log()->info("| {:<30} | {:>15} |", "ForceETSApplyScale", pConfig->bForceETSApplyScale ? "true" : "false");
 	spd::log()->info("+--------------------------------+-----------------+");
 
 	// MEMORY

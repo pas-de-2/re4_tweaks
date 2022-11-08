@@ -1301,15 +1301,14 @@ void cfgMenuRender()
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
 						ImGui::TextWrapped("Whether to skip the Capcom etc intro logos when starting the game.");
-						ImGui::TextWrapped("Will also reduce length of menu fades/messages (eg. 'Load successful!')");
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
 						ImGui::BeginDisabled(!pConfig->bSkipIntroLogos);
-						pConfig->HasUnsavedChanges |= ImGui::Checkbox("SkipMenuLogo", &pConfig->bSkipMenuLogo);
+						pConfig->HasUnsavedChanges |= ImGui::Checkbox("SkipMenuFades", &pConfig->bSkipMenuFades);
 						ImGui::EndDisabled();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("Skips the initial \"Resident Evil 4\" logo / \"PRESS ANY KEY\" screen, letting you load straight into the main menu.");
+						ImGui::TextWrapped("Reduces the length of menu fades/messages (eg. 'Save/Load successful!') and skips the initial \"Resident Evil 4\" logo / \"PRESS ANY KEY\" screen.");
 						ImGui::TextWrapped("(will only take effect when SkipIntroLogos is also set to true)");
 					}
 
@@ -1330,23 +1329,6 @@ void cfgMenuRender()
 						ImGui::TextWrapped("Can be opened with the LT+LS button combination (or CTRL+F3 on keyboard by default).");
 						ImGui::TextWrapped("If enabled on the 1.0.6 debug build it'll apply some fixes to the existing debug menu, fixing AREA JUMP etc, but won't add our custom entries due to lack of space.");
 						ImGui::TextWrapped("(may have a rare chance to cause a heap corruption crash when loading a save, but if the game loads fine then there shouldn't be any chance of crashing)");
-					}
-
-					// EnableModExpansion
-					{
-						ImGui_ColumnSwitch();
-
-						if (ImGui::Checkbox("EnableModExpansion", &pConfig->bEnableModExpansion))
-						{
-							pConfig->HasUnsavedChanges = true;
-							NeedsToRestart = true;
-						}
-
-						ImGui_ItemSeparator();
-
-						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("Enables patches/hooks for expanded modding capabilities, such as allowing enemy speed & scale to be defined when spawning.");
-						ImGui::TextWrapped("Only needed when using mods that specifically require it, otherwise should be left disabled.");
 					}
 
 					ImGui_ColumnFinish();
