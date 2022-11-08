@@ -736,14 +736,14 @@ void Trainer_Init()
 			}
 		}; injector::MakeInline<DynamicDifficultyOverride>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(7));
 
-		// Professional mode exits GameAddPoint early, so we need to take a different route through the switch at 63B22E
+		// Hook the gameDifficulty switch to prevent Professional mode from returning out of GameAddPoint early
 		pattern = hook::pattern("0F B6 81 7C 84 00 00 48 74 2F");
 		struct ProfessionalModeOverride
 		{
 			void operator()(injector::reg_pack& regs)
 			{
 				if (pConfig->bTrainerOverrideDynamicDifficulty)
-					regs.ef |= (1 << regs.zero_flag); // set the zero flag so we exit the switch early through the VERYEASY case
+					regs.ef |= (1 << regs.zero_flag); // set the zero flag so we exit the switch through the VERYEASY case
 
 				// Code that we overwrote
 				__asm {movzx eax, byte ptr[ecx + 0x847C]}
