@@ -728,7 +728,7 @@ void Trainer_Init()
 				{
 					GlobalPtr()->dynamicDifficultyPoints_4F94 = pConfig->iTrainerDynamicDifficultyLevel * 1000 + 500;
 					// update the edx register for the coming DynamicDifficultyLevel assignment
-					regs.edx = (int)((unsigned __int64)(0x10624DD3i64 * GlobalPtr()->dynamicDifficultyPoints_4F94 >> 0x20)) >> 6;
+					regs.edx = (uint32_t)(GlobalPtr()->dynamicDifficultyPoints_4F94 / 1000);
 				}
 
 				// Code that we overwrote
@@ -743,10 +743,9 @@ void Trainer_Init()
 			void operator()(injector::reg_pack& regs)
 			{
 				if (pConfig->bTrainerOverrideDynamicDifficulty)
-					regs.ef |= (1 << regs.zero_flag); // set the zero flag so we exit the switch through the VERYEASY case
-
-				// Code that we overwrote
-				__asm {movzx eax, byte ptr[ecx + 0x847C]}
+					regs.eax = uint32_t(GameDifficulty::VeryEasy); // exit switch through VERYEASY case
+				else
+					regs.eax = *(uint8_t*)(regs.ecx + 0x847C); // orig code we overwrote
 			}
 		}; injector::MakeInline<ProfessionalModeOverride>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(7));
 	}
