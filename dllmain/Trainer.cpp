@@ -728,7 +728,7 @@ void Trainer_Init()
 				{
 					GlobalPtr()->dynamicDifficultyPoints_4F94 = pConfig->iTrainerDynamicDifficultyLevel * 1000 + 500;
 					// update the edx register for the coming DynamicDifficultyLevel assignment
-					regs.edx = (uint32_t)(GlobalPtr()->dynamicDifficultyPoints_4F94 / 1000);
+					regs.edx = (uint32_t)(pConfig->iTrainerDynamicDifficultyLevel);
 				}
 
 				// Code that we overwrote
