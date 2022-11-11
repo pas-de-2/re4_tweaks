@@ -290,6 +290,19 @@ void Trainer_ParseKeyCombos()
 	}
 }
 
+void(__cdecl* j_GameAddPoint_orig)(int type);
+void __cdecl j_GameAddPoint_Hook(int type)
+{
+	if (pConfig->bTrainerOverrideDynamicDifficulty)
+	{
+		GlobalPtr()->dynamicDifficultyPoints_4F94 = pConfig->iTrainerDynamicDifficultyLevel * 1000 + 500;
+		GlobalPtr()->dynamicDifficultyLevel_4F98 = pConfig->iTrainerDynamicDifficultyLevel;
+		return;
+	}
+
+	j_GameAddPoint_orig(type);
+}
+
 bool(__cdecl* cameraHitCheck_orig)(Vec *pCross, Vec *pNorm, Vec p0, Vec p1);
 bool __cdecl cameraHitCheck_hook(Vec *pCross, Vec *pNorm, Vec p0, Vec p1)
 {
@@ -716,38 +729,11 @@ void Trainer_Init()
 		InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(0x5)).as_int(), DebugTrg_hook, PATCH_JUMP);
 	}
 
-	// Dynamic Difficulty Slider
+	// Hook j_GameAddPoint to override the Dynamic Difficulty Level
 	{
-		// Hook near the end of GameAddPoint
-		auto pattern = hook::pattern("8B C2 C1 E8 1F 03 C2 88 81 98 4F 00 00");
-		struct DynamicDifficultyOverride
-		{
-			void operator()(injector::reg_pack& regs)
-			{
-				if (pConfig->bTrainerOverrideDynamicDifficulty)
-				{
-					GlobalPtr()->dynamicDifficultyPoints_4F94 = pConfig->iTrainerDynamicDifficultyLevel * 1000 + 500;
-					// update the edx register for the coming DynamicDifficultyLevel assignment
-					regs.edx = (uint32_t)(pConfig->iTrainerDynamicDifficultyLevel);
-				}
-
-				// Code that we overwrote
-				regs.eax = regs.edx + (regs.edx >> 31);
-			}
-		}; injector::MakeInline<DynamicDifficultyOverride>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(7));
-
-		// Hook the gameDifficulty switch to prevent Professional mode from returning out of GameAddPoint early
-		pattern = hook::pattern("0F B6 81 7C 84 00 00 48 74 2F");
-		struct ProfessionalModeOverride
-		{
-			void operator()(injector::reg_pack& regs)
-			{
-				if (pConfig->bTrainerOverrideDynamicDifficulty)
-					regs.eax = uint32_t(GameDifficulty::VeryEasy); // exit switch through VERYEASY case
-				else
-					regs.eax = *(uint8_t*)(regs.ecx + 0x847C); // orig code we overwrote
-			}
-		}; injector::MakeInline<ProfessionalModeOverride>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(7));
+		auto pattern = hook::pattern("E8 ? ? ? ? 83 C4 04 E8 ? ? ? ? 0F B6 C8");
+		ReadCall(injector::GetBranchDestination(pattern.get_first()).as_int(), j_GameAddPoint_orig);
+		InjectHook(injector::GetBranchDestination(pattern.get_first()).as_int(), j_GameAddPoint_Hook);
 	}
 }
 
@@ -1589,7 +1575,7 @@ void Trainer_RenderUI(int columnCount)
 				ImGui::TextWrapped("(Effects enemy health, damage, speed, and aggression)");
 
 				ImGui::Spacing();
-
+				pConfig->iTrainerDynamicDifficultyLevel = GlobalPtr()->dynamicDifficultyLevel_4F98;
 				ImGui::BeginDisabled(!pConfig->bTrainerOverrideDynamicDifficulty);
 				ImGui::SliderInt("", &pConfig->iTrainerDynamicDifficultyLevel, 1, 10);
 				ImGui::EndDisabled();
