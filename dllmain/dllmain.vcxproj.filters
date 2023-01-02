@@ -574,6 +574,9 @@
     <ClCompile Include="Trainer_ItemMgr.cpp">
       <Filter>dllmain</Filter>
     </ClCompile>
+    <ClCompile Include="NTSC.cpp">
+      <Filter>dllmain</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\external\inireader\ini_parser.hpp">
@@ -1624,6 +1627,9 @@
       <Filter>dxvk</Filter>
     </ClInclude>
     <ClInclude Include="ConsoleWnd.h">
+      <Filter>dllmain</Filter>
+    </ClInclude>
+    <ClInclude Include="NTSC.h">
       <Filter>dllmain</Filter>
     </ClInclude>
   </ItemGroup>

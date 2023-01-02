@@ -109,7 +109,7 @@ public:
 	// GAMEPLAY
 	bool bAshleyJPCameraAngles = false;
 	bool bSeparateWaysProfessional = true;
-	bool bEnableNTSCMode = false;
+	bool bEnableNTSCMode = true;
 	bool bAllowAshleySuplex = false;
 	bool bFixDitmanGlitch = false;
 	bool bAllowSellingHandgunSilencer = true;
@@ -119,6 +119,9 @@ public:
 	bool bAutomaticMashingQTE = false;
 	bool bAllowMatildaQuickturn = false;
 	bool bLimitMatildaBurst = false;
+	bool bRevertWiiKnifeBuff = false;
+	bool bDisableAdaKnife = false;
+	bool bNAGameCubeBalance = false;
 
 	// MISC
 	std::string sWrappedDllPath = "";

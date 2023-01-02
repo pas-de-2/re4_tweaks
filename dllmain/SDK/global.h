@@ -273,7 +273,8 @@ struct __declspec(align(4)) GLOBAL_WK
 	uint32_t c_shot_cnt_8474;
 	uint32_t g_shot_cnt_8478;
 	GameDifficulty gameDifficulty_847C;
-	uint8_t save_dummy8_847D[3];
+	uint8_t joyLKamaeRelated_847D;
+	uint8_t save_dummy8_847D[2];
 	int32_t SaveKind_8480;
 	uint8_t glunk_8484[516];
 	int8_t PrintNo_8688;

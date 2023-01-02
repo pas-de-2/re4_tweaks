@@ -90,12 +90,12 @@ void re4t::init::TitleMenu()
 				TitleWorkPtr()->scroll_add_5C = 1.5f;
 
 				// Code we overwrote
-				__asm { mov dword ptr[esi], 0x1 }
+				*(uint32_t*)regs.esi = 0x1;
 			}
 		}; injector::MakeInline<titleSub_resetScrollAdd>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(6));
 
 		// reset scroll_add_5C when leaving Separate Ways
-		pattern = hook::pattern("C7 45 F4 00 00 00 FF 8B ? ? 52 8B C8 51 50");
+		pattern = hook::pattern("88 46 03 8B C6 C6 06 05 88");
 		struct titleAda_resetScrollAdd
 		{
 			void operator()(injector::reg_pack& regs)
@@ -103,9 +103,10 @@ void re4t::init::TitleMenu()
 				TitleWorkPtr()->scroll_add_5C = 1.5f;
 
 				// Code we overwrote
-				__asm { mov dword ptr[ebp - 0xC], 0xFF000000 }
+				*(uint32_t*)(regs.esi + 0x3) = LOBYTE(regs.eax);
+				regs.eax = regs.esi;
 			}
-		}; injector::MakeInline<titleAda_resetScrollAdd>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(7));
+		}; injector::MakeInline<titleAda_resetScrollAdd>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(5));
 	}
 
 	// Force the original title menu background on completed saves
@@ -265,7 +266,7 @@ void re4t::init::TitleMenu()
 						pT->Rno1_1 = TitleAda::MenuExit;
 						FadeWorkPtr(FADE_NO_SYSTEM)->FadeSet(FADE_NO_SYSTEM, 5u, 0);
 						bio4::SndCall(0, 5u, 0, 0, 0, 0);
-						bio4::SndStrReq_0(*(uint32_t*)snd_id_1654, 4, 0x3C, 0); // cancel music
+						bio4::SndStrReq_0(*snd_id_1654, 4, 0x3C, 0); // cancel music
 					}
 					else
 						exitLevelMenu();
@@ -302,7 +303,7 @@ void re4t::init::TitleMenu()
 						pT->Rno1_1 = TitleAda::MenuExit;
 						FadeWorkPtr(FADE_NO_SYSTEM)->FadeSet(FADE_NO_SYSTEM, 5u, 0);
 						bio4::SndCall(0, 5u, 0, 0, 0, 0);
-						bio4::SndStrReq_0(*(uint32_t*)snd_id_1654, 4, 0x3C, 0);
+						bio4::SndStrReq_0(*snd_id_1654, 4, 0x3C, 0);
 						break;
 					}
 				}

@@ -30,6 +30,8 @@ cItemMgr__search_Fn cItemMgr__search = nullptr;
 cItemMgr__arm_Fn cItemMgr__arm = nullptr;
 cItemMgr__get_Fn cItemMgr__get = nullptr;
 cItemMgr__erase_Fn cItemMgr__erase = nullptr;
+cItemMgr__num_0_Fn cItemMgr__num_0 = nullptr;
+cItemMgr__bulletNumTotal_Fn cItemMgr__bulletNumTotal = nullptr;
 WeaponId2ChargeNum_Fn WeaponId2ChargeNum = nullptr;
 
 // event.h externs
@@ -109,6 +111,8 @@ namespace bio4 {
 	void(__cdecl* QuakeExec)(uint32_t No, uint32_t Delay, int Time, float Scale, uint32_t Axis);
   
 	bool(__cdecl* joyFireOn)();
+
+	uint8_t(__cdecl* Rnd)();
 };
 
 // Current play time (H, M, S)
@@ -909,6 +913,10 @@ bool re4t::init::Game()
 	pattern = hook::pattern("E8 ? ? ? ? 83 C4 08 E8 ? ? ? ? 8B 0D ? ? ? ? F7 81 ? ? ? ? ? ? ? ? 74");
 	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(0)).as_int(), bio4::KeyStop);
 
+	// pointer to the game's own RNG func
+	pattern = hook::pattern("E8 ? ? ? ? 0F B6 C0 99 B9 64 00 00 00 F7 F9 8A");
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(0)).as_int(), bio4::Rnd);
+
 	// Pointer to IDSystem
 	pattern = hook::pattern("B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 8B C8 D9");
 	IDSystem_ptr = *pattern.count(1).get(0).get<IDSystem*>(1);
@@ -975,6 +983,11 @@ bool re4t::init::Game()
 	ReadCall(pattern.count(1).get(0).get<uint8_t>(7), cItemMgr__get);
 	pattern = hook::pattern("E8 ? ? ? ? 8A 45 ? 8B 4D ? 24 ? 66 0F ? ? 8D 04 FD ? ? ? ? 66 0B ? 66 89 53");
 	ReadCall(pattern.count(1).get(0).get<uint8_t>(0), cItemMgr__erase);
+	pattern = hook::pattern("E8 ? ? ? ? 66 85 C0 75 ? 6A 04 6A 08 6A FF");
+	ReadCall(pattern.count(1).get(0).get<uint8_t>(0), cItemMgr__num_0);
+	pattern = hook::pattern("E8 ? ? ? ? 0F B7 C0 85 C0 74 05 D1");
+	ReadCall(pattern.count(1).get(0).get<uint8_t>(0), cItemMgr__bulletNumTotal);
+
 
 	// EvtMgr
 	pattern = hook::pattern("75 ? 6A 00 6A 00 68 ? ? ? ? B9 ? ? ? ? E8 ? ? ? ? 84 C0");

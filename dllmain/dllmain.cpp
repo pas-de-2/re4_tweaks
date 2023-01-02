@@ -115,6 +115,9 @@ void Init_Main()
 	re4t::init::TitleMenu();
 
 	Trainer_Init();
+
+	// Tweaks for emulating the NTSC console versions of RE4
+	re4t::init::NTSC();
 }
 
 // Dll main function

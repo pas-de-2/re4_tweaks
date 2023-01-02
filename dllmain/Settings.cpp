@@ -303,6 +303,9 @@ void re4t_cfg::ReadSettings(std::wstring ini_path)
 	re4t::cfg->bAutomaticMashingQTE = iniReader.ReadBoolean("GAMEPLAY", "AutomaticMashingQTE", re4t::cfg->bAutomaticMashingQTE);
 	re4t::cfg->bAllowMatildaQuickturn = iniReader.ReadBoolean("GAMEPLAY", "AllowMatildaQuickturn", re4t::cfg->bAllowMatildaQuickturn);
 	re4t::cfg->bLimitMatildaBurst = iniReader.ReadBoolean("GAMEPLAY", "LimitMatildaBurst", re4t::cfg->bLimitMatildaBurst);
+	re4t::cfg->bDisableAdaKnife = iniReader.ReadBoolean("GAMEPLAY", "DisableAdaKnife", re4t::cfg->bDisableAdaKnife);
+	re4t::cfg->bRevertWiiKnifeBuff = iniReader.ReadBoolean("GAMEPLAY", "RevertWiiKnifeBuff", re4t::cfg->bRevertWiiKnifeBuff);
+	re4t::cfg->bNAGameCubeBalance = iniReader.ReadBoolean("GAMEPLAY", "NAGameCubeBalance", re4t::cfg->bNAGameCubeBalance);
 
 	// MISC
 	re4t::cfg->bNeverCheckForUpdates = iniReader.ReadBoolean("MISC", "NeverCheckForUpdates", re4t::cfg->bNeverCheckForUpdates);
@@ -832,6 +835,9 @@ void WriteSettings(std::wstring iniPath, bool trainerIni)
 	iniReader.WriteBoolean("GAMEPLAY", "AutomaticMashingQTE", re4t::cfg->bAutomaticMashingQTE);
 	iniReader.WriteBoolean("GAMEPLAY", "AllowMatildaQuickturn", re4t::cfg->bAllowMatildaQuickturn);
 	iniReader.WriteBoolean("GAMEPLAY", "LimitMatildaBurst", re4t::cfg->bLimitMatildaBurst);
+	iniReader.WriteBoolean("GAMEPLAY", "DisableAdaKnife", re4t::cfg->bDisableAdaKnife);
+	iniReader.WriteBoolean("GAMEPLAY", "RevertWiiKnifeBuff", re4t::cfg->bRevertWiiKnifeBuff);
+	iniReader.WriteBoolean("GAMEPLAY", "NAGameCubeBalance", re4t::cfg->bNAGameCubeBalance);
 
 	// MISC
 	iniReader.WriteBoolean("MISC", "NeverCheckForUpdates", re4t::cfg->bNeverCheckForUpdates);
@@ -1016,6 +1022,9 @@ void re4t_cfg::LogSettings()
 	spd::log()->info("| {:<30} | {:>15} |", "AutomaticMashingQTE", re4t::cfg->bAutomaticMashingQTE ? "true" : "false");
 	spd::log()->info("| {:<30} | {:>15} |", "AllowMatildaQuickturn", re4t::cfg->bAllowMatildaQuickturn ? "true" : "false");
 	spd::log()->info("| {:<30} | {:>15} |", "LimitMatildaBurst", re4t::cfg->bLimitMatildaBurst ? "true" : "false");
+	spd::log()->info("| {:<30} | {:>15} |", "DisableAdaKnife", re4t::cfg->bDisableAdaKnife ? "true" : "false");
+	spd::log()->info("| {:<30} | {:>15} |", "RevertWiiKnifeBuff", re4t::cfg->bRevertWiiKnifeBuff ? "true" : "false");
+	spd::log()->info("| {:<30} | {:>15} |", "NAGameCubeBalance", re4t::cfg->bNAGameCubeBalance ? "true" : "false");
 	spd::log()->info("+--------------------------------+-----------------+");
 
 	// MISC
