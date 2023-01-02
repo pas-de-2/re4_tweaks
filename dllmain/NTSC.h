@@ -525,7 +525,7 @@ const int Dmg_tbl_em10_ntsc[46] = {
   0,     // 42 ?
   150,   // 43 ?
   150,   // 44 ?
-  2500,  // 45 Krauser Arm Transformation Damage
+  2500,  // 45 Krauser Arm Transformation
   // UHD only
   //250, // 46 ?
   //250, // 47 ?

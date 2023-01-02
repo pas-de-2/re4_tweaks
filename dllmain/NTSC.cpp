@@ -448,12 +448,12 @@ void re4t::init::NTSC()
 
 	// GameCube-NTSC Mode
 	// The original North American GameCube release of RE4 was an earlier build of the game with its own unique gameplay quirks
-	// Notably, the knife does 60% less damage, the TMP does 30% less damage to Ganados, many weapon stats and item prices are different, pesetas drop less and ammo drops more often
+	// Notably, ammo drops more often, pesetas drop less often, the knife does 60% less damage, the TMP does 30% less damage to Ganados, many weapon stats and item prices are different
 	if (re4t::cfg->bNAGameCubeBalance)
 	{
 		// Restore GameCube-NTSC merchant prices
 		injector::WriteMemoryRaw(g_item_price_tbl, (void*)g_item_price_tbl_ntsc, sizeof(g_item_price_tbl_ntsc), true);
-		injector::WriteMemoryRaw(level_price, (void*)level_price_ntsc, sizeof(g_item_price_tbl_ntsc), true);
+		injector::WriteMemoryRaw(level_price, (void*)level_price_ntsc, sizeof(level_price_ntsc), true);
 
 		// Restore GameCube-NTSC damage tables
 		injector::WriteMemoryRaw(Dmg_tbl_em2b, (void*)Dmg_tbl_em2b_ntsc, sizeof(Dmg_tbl_em2b_ntsc), true);
