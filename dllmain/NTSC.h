@@ -1,9 +1,44 @@
 #pragma once
 #include "SDK\basic_types.h"
 
+struct FILE_MSG_TBL {
+	uint8_t top_0;
+	uint8_t color_1;
+	uint8_t attr_2;
+	uint8_t layout_3;
+};
+assert_size(FILE_MSG_TBL, 0x4);
+
 //----------------------------------------*
-// Merchant Prices 
+// Merchant Data 
 //----------------------------------------*
+
+struct __declspec(align(2)) LEVEL_INFO
+{
+    uint16_t id_0;
+    uint8_t level_2[4];
+    uint8_t flag[2];
+};
+assert_size(LEVEL_INFO, 0x8);
+
+struct __declspec(align(2)) STOCK_INFO
+{
+    uint16_t id_0;
+    int16_t num_2;
+    int8_t flag[4];
+};
+assert_size(STOCK_INFO, 0x8);
+
+struct MERCHANT_DATA
+{
+    STOCK_INFO stock_0[64];
+    LEVEL_INFO level_200[32];
+    int8_t friendship_300;
+    int8_t study_num_301;
+    int8_t reduction_ratio_302;
+    int8_t bonus_flag_303;
+};
+assert_size(MERCHANT_DATA, 0x304);
 
 struct PRICE_INFO
 {
@@ -14,7 +49,7 @@ struct PRICE_INFO
 assert_size(PRICE_INFO, 0x6);
 
 // merged with the UHD table data
-const PRICE_INFO g_item_price_tbl_ntsc[131] = {
+const PRICE_INFO g_item_price_tbl_gc[131] = {
   { 127, 6000, 1 },  // Attache Case O, 6000 -> 7300
   { 126, 4000, 1 },
   { 125, 3000, 1 },  // Attach Case M, 3000 -> 2400
@@ -158,7 +193,7 @@ struct __declspec(align(2)) LEVEL_PRICE
 };
 assert_size(LEVEL_PRICE, 0x2A);
 
-const LEVEL_PRICE level_price_ntsc[16] = {
+const LEVEL_PRICE level_price_gc[16] = {
   {
     35,                                          // Handgun
     { 700, 1000, 1500, 2000, 3000, 4000, 0 },    // -> { 700, 1000, 1500, 1800, 2000, 5700, 0 }
@@ -277,7 +312,7 @@ const LEVEL_PRICE level_price_ntsc[16] = {
 // Weapon Stats 
 //----------------------------------------*
 
-const float WeaponLevelTbl_ntsc[44][7] = {
+const float WeaponLevelTbl_gc[44][7] = {
   { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f },                       // 0
   { 0.89999998f, 1.1f, 1.3f, 1.5f, 1.7f, 1.9f, 1.9f },                // 1
   { 1.0f, 1.2f, 1.4f, 1.6f, 1.8f, 2.0f, 2.0f },                       // 2
@@ -330,7 +365,7 @@ const float WeaponLevelTbl_ntsc[44][7] = {
   //{ 2.5f, 2.8f, 3.0f, 3.3f, 3.5f, 4.0f, 8.0f }                      // 48 -> { 16.6, 16.6, 16.6, 16.6, 16.6, 16.6, 16.6 }
 };
 
-const float PlShotFrameTbl_ntsc[45][5] = {
+const float PlShotFrameTbl_gc[45][5] = {
   { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f },        // 0
   { 14.0f, 12.0f, 10.0f, 10.0f, 10.0f },   // 1
   { 14.0f, 12.0f, 10.0f, 10.0f, 10.0f },   // 2
@@ -378,7 +413,7 @@ const float PlShotFrameTbl_ntsc[45][5] = {
   { 16.0f, 16.0f, 16.0f, 16.0f, 16.0f }    // 44
 };
 
-const float PlReloadSpeedTbl_ntsc[45][3] = {
+const float PlReloadSpeedTbl_gc[45][3] = {
   { 1.0f, 1.0f, 1.0f },       // 0
   { 51.0f, 44.0f, 25.0f },    // 1
   { 52.0f, 44.0f, 26.0f },    // 2
@@ -426,7 +461,7 @@ const float PlReloadSpeedTbl_ntsc[45][3] = {
   { 110.0f, 86.0f, 55.0f },   // 44
 };
 
-const float PlReloadEndTbl_ntsc[45][3] = {
+const float PlReloadEndTbl_gc[45][3] = {
   { 1.0f, 1.0f, 1.0f },       // 0
   { 36.0f, 32.0f, 18.0f },    // 1
   { 36.0f, 32.0f, 18.0f },    // 2
@@ -479,7 +514,7 @@ const float PlReloadEndTbl_ntsc[45][3] = {
 //----------------------------------------*
 
 // Ganados
-const int Dmg_tbl_em10_ntsc[46] = {
+const int Dmg_tbl_em10_gc[46] = {
   0,     // 0
   150,   // 1 Punisher
   150,   // 2 Handgun
@@ -533,7 +568,7 @@ const int Dmg_tbl_em10_ntsc[46] = {
 };
 
 // El Gigante
-const int Dmg_tbl_em2b_ntsc[46] = {
+const int Dmg_tbl_em2b_gc[46] = {
   0,    // 0
   30,   // 1
   30,   // 2
@@ -583,7 +618,7 @@ const int Dmg_tbl_em2b_ntsc[46] = {
 };
 
 // Verdrugo
-const int Dmg_tbl_em2c_ntsc[46] = {
+const int Dmg_tbl_em2c_gc[46] = {
   0,     // 0
   25,    // 1
   25,    // 2
@@ -633,7 +668,7 @@ const int Dmg_tbl_em2c_ntsc[46] = {
 };
 
 // Novistadors
-const int Dmg_tbl_em2d_ntsc[46] = {
+const int Dmg_tbl_em2d_gc[46] = {
   0,     // 0
   50,    // 1
   50,    // 2
@@ -683,7 +718,7 @@ const int Dmg_tbl_em2d_ntsc[46] = {
 };
 
 // Spider Saddler
-const int Dmg_tbl_em31_ntsc[46] = {
+const int Dmg_tbl_em31_gc[46] = {
   0,     // 0
   15,    // 1
   15,    // 2
@@ -734,7 +769,7 @@ const int Dmg_tbl_em31_ntsc[46] = {
 
 // Regenerators, Iron Maidens
 // almost everything's damage was reduced by 33% in the NTSCJ-J/PAL version, except the knife, which was buffed 2x
-const int Dmg_tbl_em36_ntsc[46] = {
+const int Dmg_tbl_em36_gc[46] = {
   0,     // 0
   30,    // 1 [-]  -> 20
   30,    // 2 [-]  -> 20
@@ -784,7 +819,7 @@ const int Dmg_tbl_em36_ntsc[46] = {
 };
 
 // Krauser
-const int Dmg_tbl_em39_ntsc[46] = {
+const int Dmg_tbl_em39_gc[46] = {
   0,     // 0
   15,    // 1
   15,    // 2
@@ -836,7 +871,7 @@ const int Dmg_tbl_em39_ntsc[46] = {
 // Knight Armor, U3?
 // identical to UHD Dmg_tbl_em3c
 // UHD's Dmg_tbl_em32, not found in GC, is just this table with 2x knife damage
-const int Dmg_tbl_em3c_ntsc[46] = {
+const int Dmg_tbl_em3c_gc[46] = {
   0,     // 0
   15,    // 1
   15,    // 2

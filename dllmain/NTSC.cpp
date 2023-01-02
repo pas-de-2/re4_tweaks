@@ -25,6 +25,7 @@ float* PlReloadEndTbl;
 
 PRICE_INFO* g_item_price_tbl;
 LEVEL_PRICE* level_price;
+LEVEL_INFO* level_null;
 
 static uint8_t RandomItemCk_em_id = 0;
 static uint32_t RandomItemCk_ctrl_flag = 0;
@@ -75,6 +76,12 @@ bool __cdecl wep17_r3_fire10_MotionCheckCrossFrame_hook2(MOTION_INFO* pInfo, flo
 	return MotionCheckCrossFrame(pInfo, 11.0f);
 }
 
+void(__cdecl* levelDataAdd)(MERCHANT_DATA* p_data, LEVEL_INFO* p_level, uint32_t add_flag);
+void __cdecl levelDataAdd_r229(MERCHANT_DATA* p_data, LEVEL_INFO* p_level, uint32_t add_flag)
+{
+	return levelDataAdd(p_data, level_null, add_flag);
+}
+
 BOOL(__cdecl* RandomItemCk)(uint8_t em_id, uint32_t* ret_id, uint32_t* ret_num, uint32_t ctrl_flag);
 BOOL __cdecl RandomItemCk_hook(uint8_t em_id, uint32_t* ret_id, uint32_t* ret_num, uint32_t ctrl_flag)
 {
@@ -83,7 +90,7 @@ BOOL __cdecl RandomItemCk_hook(uint8_t em_id, uint32_t* ret_id, uint32_t* ret_nu
 	return RandomItemCk(em_id, ret_id, ret_num, ctrl_flag);
 }
 
-uint32_t __cdecl GetBulletPoint_ntsc()
+uint32_t __cdecl GetBulletPoint_gc()
 {
 	uint16_t curChapter = HIBYTE(GlobalPtr()->curRoomId_4FAC);
 
@@ -97,7 +104,7 @@ uint32_t __cdecl GetBulletPoint_ntsc()
 }
 
 BOOL(__cdecl* GetDropBullet_orig)(uint32_t* ret_id, uint32_t* ret_num);
-BOOL __cdecl GetDropBullet_ntsc(uint32_t* ret_id, uint32_t* ret_num)
+BOOL __cdecl GetDropBullet_gc(uint32_t* ret_id, uint32_t* ret_num)
 {
 	auto dropItem = [&](EItemId itemId, int stackSize = 0)
 	{
@@ -106,7 +113,7 @@ BOOL __cdecl GetDropBullet_ntsc(uint32_t* ret_id, uint32_t* ret_num)
 		return TRUE;
 	};
 
-	if (GetBulletPoint_ntsc() >= 150)
+	if (GetBulletPoint_gc() >= 150)
 		return FALSE;
 
 	uint32_t result = bio4::Rnd() % 100;
@@ -305,13 +312,7 @@ void re4t::init::NTSC()
 		// Shooting range: use NTSC strings for the game rules note
 		// (only supports English for now, as only eng/ss_file_01.MDT contains the additional strings necessary for this)
 		pattern = hook::pattern("? 00 01 00 46 00 01 00");
-		struct FILE_MSG_TBL_mb {
-			uint8_t top_0;
-			uint8_t color_1;
-			uint8_t attr_2;
-			uint8_t layout_3;
-		};
-		static FILE_MSG_TBL_mb* file_msg_tbl_35 = pattern.count(1).get(0).get<FILE_MSG_TBL_mb>(0);
+		static FILE_MSG_TBL* file_msg_tbl_35 = pattern.count(1).get(0).get<FILE_MSG_TBL>(0);
 		// update the note's message index whenever we load into r22c
 		pattern = hook::pattern("89 41 78 83 C1 7C E8");
 		struct R22cInit_UpdateMsgIdx
@@ -452,24 +453,24 @@ void re4t::init::NTSC()
 	if (re4t::cfg->bNAGameCubeBalance)
 	{
 		// Restore GameCube-NTSC merchant prices
-		injector::WriteMemoryRaw(g_item_price_tbl, (void*)g_item_price_tbl_ntsc, sizeof(g_item_price_tbl_ntsc), true);
-		injector::WriteMemoryRaw(level_price, (void*)level_price_ntsc, sizeof(level_price_ntsc), true);
+		injector::WriteMemoryRaw(g_item_price_tbl, (void*)g_item_price_tbl_gc, sizeof(g_item_price_tbl_gc), true);
+		injector::WriteMemoryRaw(level_price, (void*)level_price_gc, sizeof(level_price_gc), true);
 
 		// Restore GameCube-NTSC damage tables
-		injector::WriteMemoryRaw(Dmg_tbl_em2b, (void*)Dmg_tbl_em2b_ntsc, sizeof(Dmg_tbl_em2b_ntsc), true);
-		injector::WriteMemoryRaw(Dmg_tbl_em2c, (void*)Dmg_tbl_em2c_ntsc, sizeof(Dmg_tbl_em2c_ntsc), true);
-		injector::WriteMemoryRaw(Dmg_tbl_em2d, (void*)Dmg_tbl_em2d_ntsc, sizeof(Dmg_tbl_em2d_ntsc), true);
-		injector::WriteMemoryRaw(Dmg_tbl_em31, (void*)Dmg_tbl_em31_ntsc, sizeof(Dmg_tbl_em31_ntsc), true);
-		injector::WriteMemoryRaw(Dmg_tbl_em32, (void*)Dmg_tbl_em3c_ntsc, sizeof(Dmg_tbl_em3c_ntsc), true);
-		injector::WriteMemoryRaw(Dmg_tbl_em36, (void*)Dmg_tbl_em36_ntsc, sizeof(Dmg_tbl_em36_ntsc), true);
-		injector::WriteMemoryRaw(Dmg_tbl_em39, (void*)Dmg_tbl_em39_ntsc, sizeof(Dmg_tbl_em39_ntsc), true);
-		injector::WriteMemoryRaw(Dmg_tbl_em10, (void*)Dmg_tbl_em10_ntsc, sizeof(Dmg_tbl_em10_ntsc), true);
+		injector::WriteMemoryRaw(Dmg_tbl_em2b, (void*)Dmg_tbl_em2b_gc, sizeof(Dmg_tbl_em2b_gc), true);
+		injector::WriteMemoryRaw(Dmg_tbl_em2c, (void*)Dmg_tbl_em2c_gc, sizeof(Dmg_tbl_em2c_gc), true);
+		injector::WriteMemoryRaw(Dmg_tbl_em2d, (void*)Dmg_tbl_em2d_gc, sizeof(Dmg_tbl_em2d_gc), true);
+		injector::WriteMemoryRaw(Dmg_tbl_em31, (void*)Dmg_tbl_em31_gc, sizeof(Dmg_tbl_em31_gc), true);
+		injector::WriteMemoryRaw(Dmg_tbl_em32, (void*)Dmg_tbl_em3c_gc, sizeof(Dmg_tbl_em3c_gc), true);
+		injector::WriteMemoryRaw(Dmg_tbl_em36, (void*)Dmg_tbl_em36_gc, sizeof(Dmg_tbl_em36_gc), true);
+		injector::WriteMemoryRaw(Dmg_tbl_em39, (void*)Dmg_tbl_em39_gc, sizeof(Dmg_tbl_em39_gc), true);
+		injector::WriteMemoryRaw(Dmg_tbl_em10, (void*)Dmg_tbl_em10_gc, sizeof(Dmg_tbl_em10_gc), true);
 
 		// Restore GameCube-NTSC weapon stats
-		injector::WriteMemoryRaw(WeaponLevelTbl, (void*)WeaponLevelTbl_ntsc, sizeof(WeaponLevelTbl_ntsc), true);
-		injector::WriteMemoryRaw(PlShotFrameTbl, (void*)PlShotFrameTbl_ntsc, sizeof(PlShotFrameTbl_ntsc), true);
-		injector::WriteMemoryRaw(PlReloadSpeedTbl, (void*)PlReloadSpeedTbl_ntsc, sizeof(PlReloadEndTbl_ntsc), true);
-		injector::WriteMemoryRaw(PlReloadEndTbl, (void*)PlReloadEndTbl_ntsc, sizeof(PlReloadEndTbl_ntsc), true);
+		injector::WriteMemoryRaw(WeaponLevelTbl, (void*)WeaponLevelTbl_gc, sizeof(WeaponLevelTbl_gc), true);
+		injector::WriteMemoryRaw(PlShotFrameTbl, (void*)PlShotFrameTbl_gc, sizeof(PlShotFrameTbl_gc), true);
+		injector::WriteMemoryRaw(PlReloadSpeedTbl, (void*)PlReloadSpeedTbl_gc, sizeof(PlReloadSpeedTbl_gc), true);
+		injector::WriteMemoryRaw(PlReloadEndTbl, (void*)PlReloadEndTbl_gc, sizeof(PlReloadEndTbl_gc), true);
 
 		spd::log()->info("Loaded GameCube-NTSC game tables");
 
@@ -503,6 +504,14 @@ void re4t::init::NTSC()
 		pattern = hook::pattern("B9 09 00 00 00 F7 F9 83");
 		injector::WriteMemory(pattern.count(1).get(0).get<uint8_t>(1), uint8_t(0xC), true); // em10SetDmVal
 
+		// The Striker can't be upgraded until r225 in the GC version
+		// Looks like this was the result of a bug in the MerchantRoomInit code. The level_r229 table exists, but the game loads level_null instead by mistake.
+		pattern = hook::pattern("0F B7 90 AC 4F 00 00 6A 00 52");
+		level_null = *pattern.count(1).get(0).get<LEVEL_INFO*>(27);
+		pattern = hook::pattern("6A 00 50 B9 ? ? ? ? E8 ? ? ? ? 84 C0 0F ? ? ? ? ? 6A 00 68 ? ? ? ? 68 ? ? ? ? E8 ? ? ? ? 6A 00 68 ? ? ? ? EB");
+		ReadCall(pattern.count(3).get(1).get<uint8_t>(33), levelDataAdd);
+		InjectHook(pattern.count(3).get(1).get<uint32_t>(33), levelDataAdd_r229, PATCH_CALL);
+
 		// U3 takes full damage from magnum weapons (vs 50% in UHD)
 		pattern = hook::pattern("8A 8E 2E 03 00 00 80 E9 05 83");
 		injector::MakeNOP(pattern.count(1).get(0).get<uint32_t>(0), 22); // em32SetDmVal
@@ -517,7 +526,7 @@ void re4t::init::NTSC()
 
 			// hook GetBulletPoint to use the old GetBulletPoint calculation
 			auto pattern = hook::pattern("F7 F9 8A DA E8 ? ? ? ? 89");
-			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(4)).as_int(), GetBulletPoint_ntsc, PATCH_JUMP);
+			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(4)).as_int(), GetBulletPoint_gc, PATCH_JUMP);
 
 			// Gold chance is always 20% (UHD is 17% in Chapter 1, 20% afterwards)
 			pattern = hook::pattern("B1 11 3A D9 0F");
@@ -581,7 +590,7 @@ void re4t::init::NTSC()
 			// hook GetDropBullet with a reimplementation of the GC GetDropBullet code
 			pattern = hook::pattern("53 57 E8 ? ? ? ? 83 C4 08 85 C0 0F ? ? ? ? ? 8B ? ? ? ? ? 8B 42 54");
 			ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(2)).as_int(), GetDropBullet_orig);
-			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(2)).as_int(), GetDropBullet_ntsc, PATCH_JUMP);
+			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(2)).as_int(), GetDropBullet_gc, PATCH_JUMP);
 
 			// UHD has an extra fallthrough case to drop gold if no ammo or recovery item was generated that we need to get rid of
 
