@@ -27,9 +27,6 @@ PRICE_INFO* g_item_price_tbl;
 LEVEL_PRICE* level_price;
 LEVEL_INFO* level_null;
 
-static uint8_t RandomItemCk_em_id = 0;
-static uint32_t RandomItemCk_ctrl_flag = 0;
-
 void GetMerchantPointers()
 {
 	auto pattern = hook::pattern("68 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? 68");
@@ -80,14 +77,6 @@ void(__cdecl* levelDataAdd)(MERCHANT_DATA* p_data, LEVEL_INFO* p_level, uint32_t
 void __cdecl levelDataAdd_r229(MERCHANT_DATA* p_data, LEVEL_INFO* p_level, uint32_t add_flag)
 {
 	return levelDataAdd(p_data, level_null, add_flag);
-}
-
-BOOL(__cdecl* RandomItemCk)(uint8_t em_id, uint32_t* ret_id, uint32_t* ret_num, uint32_t ctrl_flag);
-BOOL __cdecl RandomItemCk_hook(uint8_t em_id, uint32_t* ret_id, uint32_t* ret_num, uint32_t ctrl_flag)
-{
-	RandomItemCk_em_id = em_id;
-	RandomItemCk_ctrl_flag = ctrl_flag;
-	return RandomItemCk(em_id, ret_id, ret_num, ctrl_flag);
 }
 
 uint32_t __cdecl GetBulletPoint_gc()
@@ -592,27 +581,12 @@ void re4t::init::NTSC()
 			//ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(2)).as_int(), GetDropBullet_orig);
 			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(2)).as_int(), GetDropBullet_gc, PATCH_JUMP);
 
-			// UHD has an extra fallthrough case to drop pesetas if no ammo or recovery item was generated that we need to get rid of
-
-			// first, capture em_id and ctrl_flag somehow
-			pattern = hook::pattern("57 56 6A 10 E8 ? ? ? ? 83 C4 10 83");
-			ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(4)).as_int(), RandomItemCk);
-			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(4)).as_int(), RandomItemCk_hook);
-
-			// then use the check for mercs mode to exit the function early if em_id isn't a novistadore and ctrl_flag isn't 1
-			pattern = hook::pattern("85 C0 0F ? ? ? ? ? A9 00 00 00 40 0F");
-			struct RandomItemCk_skipPesetasFallthrough
-			{
-				void operator()(injector::reg_pack& regs)
-				{
-					bool isMercenaries = FlagIsSet(GlobalPtr()->Flags_SYSTEM_0_54, uint32_t(Flags_SYSTEM::SYS_OMAKE_ETC_GAME));
-
-					if (isMercenaries || (RandomItemCk_em_id != 0x2D && (RandomItemCk_ctrl_flag & 1) != 1))
-						regs.ef &= ~(1 << regs.zero_flag);
-					else
-						regs.ef |= (1 << regs.zero_flag);
-				}
-			}; injector::MakeInline<RandomItemCk_skipPesetasFallthrough>(pattern.count(1).get(0).get<uint32_t>(8), pattern.count(1).get(0).get<uint32_t>(13));
+			// UHD tries to generate pesetas if no ammo or recovery item was spawned. skip this by returning out of RandomItemCk early
+			pattern = hook::pattern("5F 5E 33 C0 5B 8B E5 5D C3 E8");
+			uintptr_t ptrRandomItemCk_return0 = (uintptr_t)pattern.count(1).get(0).get<uint32_t>(0);
+			pattern = hook::pattern("B8 01 00 00 00 5B 8B E5 5D C3 8B ? ? 0F");
+			injector::MakeNOP(pattern.count(1).get(0).get<uint32_t>(10), 10, true);
+			injector::MakeJMP(pattern.count(1).get(0).get<uint32_t>(10), ptrRandomItemCk_return0);
 		}
 	}
 }
