@@ -103,7 +103,7 @@ uint32_t __cdecl GetBulletPoint_gc()
 		+ (ItemMgr->bulletNumTotal((ITEM_ID)EItemId::Bullet_Arrow == 0) ? 0 : 5);
 }
 
-BOOL(__cdecl* GetDropBullet_orig)(uint32_t* ret_id, uint32_t* ret_num);
+//BOOL(__cdecl* GetDropBullet_orig)(uint32_t* ret_id, uint32_t* ret_num);
 BOOL __cdecl GetDropBullet_gc(uint32_t* ret_id, uint32_t* ret_num)
 {
 	auto dropItem = [&](EItemId itemId, int stackSize = 0)
@@ -235,9 +235,9 @@ BOOL __cdecl GetDropBullet_gc(uint32_t* ret_id, uint32_t* ret_num)
 
 		if (result - 90 < 10)
 		{
-			// there was no Separate Ways in this version of the game, so this is just some perfunctory support
+			// attempt at support for Separate Ways
 			if (isSeparateWays && hasBowgun && bio4::Rnd() % 100 < 75)
-				return dropItem(EItemId::Bullet_Bow_Gun);
+				return dropItem(EItemId::Bullet_Bow_Gun, 1);
 
 			result = bio4::Rnd() % 3;
 			switch (result)
@@ -271,7 +271,7 @@ BOOL __cdecl GetDropBullet_gc(uint32_t* ret_id, uint32_t* ret_num)
 		if (bio4::Rnd() % 10 > 7)
 		{
 			if (isSeparateWays && hasBowgun && bio4::Rnd() % 100 < 75)
-				return dropItem(EItemId::Bullet_Bow_Gun);
+				return dropItem(EItemId::Bullet_Bow_Gun, 1);
 
 			result = bio4::Rnd() % 3;
 			switch (result)
@@ -589,10 +589,10 @@ void re4t::init::NTSC()
 
 			// hook GetDropBullet with a reimplementation of the GC GetDropBullet code
 			pattern = hook::pattern("53 57 E8 ? ? ? ? 83 C4 08 85 C0 0F ? ? ? ? ? 8B ? ? ? ? ? 8B 42 54");
-			ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(2)).as_int(), GetDropBullet_orig);
+			//ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(2)).as_int(), GetDropBullet_orig);
 			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(2)).as_int(), GetDropBullet_gc, PATCH_JUMP);
 
-			// UHD has an extra fallthrough case to drop gold if no ammo or recovery item was generated that we need to get rid of
+			// UHD has an extra fallthrough case to drop pesetas if no ammo or recovery item was generated that we need to get rid of
 
 			// first, capture em_id and ctrl_flag somehow
 			pattern = hook::pattern("57 56 6A 10 E8 ? ? ? ? 83 C4 10 83");
@@ -601,7 +601,7 @@ void re4t::init::NTSC()
 
 			// then use the check for mercs mode to exit the function early if em_id isn't a novistadore and ctrl_flag isn't 1
 			pattern = hook::pattern("85 C0 0F ? ? ? ? ? A9 00 00 00 40 0F");
-			struct RandomItemCk_skipGoldFallthrough
+			struct RandomItemCk_skipPesetasFallthrough
 			{
 				void operator()(injector::reg_pack& regs)
 				{
@@ -612,7 +612,7 @@ void re4t::init::NTSC()
 					else
 						regs.ef |= (1 << regs.zero_flag);
 				}
-			}; injector::MakeInline<RandomItemCk_skipGoldFallthrough>(pattern.count(1).get(0).get<uint32_t>(8), pattern.count(1).get(0).get<uint32_t>(13));
+			}; injector::MakeInline<RandomItemCk_skipPesetasFallthrough>(pattern.count(1).get(0).get<uint32_t>(8), pattern.count(1).get(0).get<uint32_t>(13));
 		}
 	}
 }

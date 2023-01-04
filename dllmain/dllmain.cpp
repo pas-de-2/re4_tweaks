@@ -101,6 +101,9 @@ void Init_Main()
 	// Fixes FPS-related issues
 	re4t::init::FrameRateFixes();
 
+	// Tweaks for emulating the NTSC console versions of RE4
+	re4t::init::NTSC();
+
 	re4t::init::Gameplay();
 
 	re4t::init::Misc();
@@ -115,9 +118,6 @@ void Init_Main()
 	re4t::init::TitleMenu();
 
 	Trainer_Init();
-
-	// Tweaks for emulating the NTSC console versions of RE4
-	re4t::init::NTSC();
 }
 
 // Dll main function
