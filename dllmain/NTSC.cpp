@@ -5,62 +5,65 @@
 #include "ConsoleWnd.h"
 #include "NTSC.h"
 
-//int* Dmg_tbl_sml;
-int* Dmg_tbl_em2b;
-int* Dmg_tbl_em2c;
-int* Dmg_tbl_em2d;
-int* Dmg_tbl_em31;
-int* Dmg_tbl_em32;
-int* Dmg_tbl_em36;
-int* Dmg_tbl_em39;
-//int* Dmg_tbl_em3c;
-//int* Dmg_tbl_em3f;
-//int* Dmg_tbl_em4e;
-int* Dmg_tbl_em10;
+//int (*Dmg_tbl_sml)[49];
+int (*Dmg_tbl_em2b)[49];
+int (*Dmg_tbl_em2c)[49];
+int (*Dmg_tbl_em2d)[49];
+int (*Dmg_tbl_em31)[49];
+int (*Dmg_tbl_em32)[49];
+int (*Dmg_tbl_em36)[49];
+int (*Dmg_tbl_em39)[49];
+//int (*Dmg_tbl_em3c)[49];
+//int (*Dmg_tbl_em3f)[49];
+//int (*Dmg_tbl_em4e)[49];
+int (*Dmg_tbl_em10)[49];
 
-float* WeaponLevelTbl;
-float* PlShotFrameTbl;
-float* PlReloadSpeedTbl;
-float* PlReloadEndTbl;
+float (*WeaponLevelTbl)[49][7];
+float (*PlShotFrameTbl)[49][5];
+float (*PlReloadSpeedTbl)[49][3];
+float (*PlReloadEndTbl)[49][3];
 
-PRICE_INFO* g_item_price_tbl;
-LEVEL_PRICE* level_price;
-LEVEL_INFO* level_null;
+PRICE_INFO (*g_item_price_tbl)[131];
+LEVEL_PRICE (*level_price)[16];
+LEVEL_INFO (*level_null)[1];
+
+static uint8_t RandomItemCk_em_id = 0;
+static uint32_t RandomItemCk_ctrl_flag = 0;
 
 void GetMerchantPointers()
 {
 	auto pattern = hook::pattern("68 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? 68");
-	level_price = *pattern.count(1).get(0).get<LEVEL_PRICE*>(1);
-	g_item_price_tbl = *pattern.count(1).get(0).get<PRICE_INFO*>(6);
+	level_price = *pattern.count(1).get(0).get<LEVEL_PRICE(*)[16]>(1);
+	g_item_price_tbl = *pattern.count(1).get(0).get<PRICE_INFO(*)[131]>(6);
 }
 
 void GetDamageTablePointers()
 {
 	auto pattern = hook::pattern("83 C0 F0 83 F8 3F 77 ? FF ? ? ? ? ? ? 8B");
-//  Dmg_tbl_em4e = *pattern.count(1).get(0).get<int*>(18);      // ?
-//  Dmg_tbl_sml = *pattern.count(1).get(0).get<int*>(18+9*1);   // OHKO
-	Dmg_tbl_em2b = *pattern.count(1).get(0).get<int*>(18+9*2);  // El Gigante
-	Dmg_tbl_em2c = *pattern.count(1).get(0).get<int*>(18+9*3);  // Verdrugo
-	Dmg_tbl_em2d = *pattern.count(1).get(0).get<int*>(18+9*4);  // Novistadors
-	Dmg_tbl_em31 = *pattern.count(1).get(0).get<int*>(18+9*5);  // Spider Saddler
-	Dmg_tbl_em32 = *pattern.count(1).get(0).get<int*>(18+9*6);  // U3, others?
-	Dmg_tbl_em36 = *pattern.count(1).get(0).get<int*>(18+9*7);  // Regenerators
-	Dmg_tbl_em39 = *pattern.count(1).get(0).get<int*>(18+9*8);  // Krauser
-//  Dmg_tbl_em3c = *pattern.count(1).get(0).get<int*>(18+9*9);  // Knight Armor, identical to GC
-//  Dmg_tbl_em3f = *pattern.count(1).get(0).get<int*>(18+9*10); // Saddler (Separate Ways)
-	Dmg_tbl_em10 = *pattern.count(1).get(0).get<int*>(18+9*11); // Ganados
+//  Dmg_tbl_em4e = *pattern.count(1).get(0).get<int(*)[49]>(18);      // ?
+//  Dmg_tbl_sml = *pattern.count(1).get(0).get<int(*)[49]>(18+9*1);   // OHKO
+	Dmg_tbl_em2b = *pattern.count(1).get(0).get<int(*)[49]>(18+9*2);  // El Gigante
+	Dmg_tbl_em2c = *pattern.count(1).get(0).get<int(*)[49]>(18+9*3);  // Verdrugo
+	Dmg_tbl_em2d = *pattern.count(1).get(0).get<int(*)[49]>(18+9*4);  // Novistadors
+	Dmg_tbl_em31 = *pattern.count(1).get(0).get<int(*)[49]>(18+9*5);  // Spider Saddler
+	Dmg_tbl_em32 = *pattern.count(1).get(0).get<int(*)[49]>(18+9*6);  // U3, others?
+	Dmg_tbl_em36 = *pattern.count(1).get(0).get<int(*)[49]>(18+9*7);  // Regenerators
+	Dmg_tbl_em39 = *pattern.count(1).get(0).get<int(*)[49]>(18+9*8);  // Krauser
+//  Dmg_tbl_em3c = *pattern.count(1).get(0).get<int(*)[49]>(18+9*9);  // Knight Armor, identical to GC
+//  Dmg_tbl_em3f = *pattern.count(1).get(0).get<int(*)[49]>(18+9*10); // Saddler (Separate Ways)
+	Dmg_tbl_em10 = *pattern.count(1).get(0).get<int(*)[49]>(18+9*11); // Ganados
 }
 
 void GetWeaponStatsPointers()
 {
 	auto pattern = hook::pattern("D9 ? ? ? ? ? ? D9 ? ? 75 ? 8B CE 83");
-	WeaponLevelTbl = *pattern.count(1).get(0).get<float*>(3);
+	WeaponLevelTbl = *pattern.count(1).get(0).get<float(*)[49][7]>(3);
 	pattern = hook::pattern("8D 04 80 03 C1 51 D9");
-	PlShotFrameTbl = *pattern.count(1).get(0).get<float*>(9);
+	PlShotFrameTbl = *pattern.count(1).get(0).get<float(*)[49][5]>(9);
 	pattern = hook::pattern("8D 14 41 03 D0 5E D9");
-	PlReloadSpeedTbl = *pattern.count(1).get(0).get<float*>(9);
+	PlReloadSpeedTbl = *pattern.count(1).get(0).get<float(*)[49][3]>(9);
 	pattern = hook::pattern("8D 04 40 03 C1 D9");
-	PlReloadEndTbl = *pattern.count(1).get(0).get<float*>(8);
+	PlReloadEndTbl = *pattern.count(1).get(0).get<float(*)[49][3]>(8);
 }
 
 bool(__cdecl* MotionCheckCrossFrame)(MOTION_INFO* pInfo, float frame);
@@ -76,7 +79,7 @@ bool __cdecl wep17_r3_fire10_MotionCheckCrossFrame_hook2(MOTION_INFO* pInfo, flo
 void(__cdecl* levelDataAdd)(MERCHANT_DATA* p_data, LEVEL_INFO* p_level, uint32_t add_flag);
 void __cdecl levelDataAdd_r229(MERCHANT_DATA* p_data, LEVEL_INFO* p_level, uint32_t add_flag)
 {
-	return levelDataAdd(p_data, level_null, add_flag);
+	return levelDataAdd(p_data, *level_null, add_flag);
 }
 
 uint32_t __cdecl GetBulletPoint_gc()
@@ -496,7 +499,7 @@ void re4t::init::NTSC()
 		// The Striker can't be upgraded until r225 in the GC version
 		// Looks like this was the result of a bug in the MerchantRoomInit code. The level_r229 table exists, but the game loads level_null instead by mistake.
 		pattern = hook::pattern("0F B7 90 AC 4F 00 00 6A 00 52");
-		level_null = *pattern.count(1).get(0).get<LEVEL_INFO*>(27);
+		level_null = *pattern.count(1).get(0).get<LEVEL_INFO(*)[1]>(27);
 		pattern = hook::pattern("6A 00 50 B9 ? ? ? ? E8 ? ? ? ? 84 C0 0F ? ? ? ? ? 6A 00 68 ? ? ? ? 68 ? ? ? ? E8 ? ? ? ? 6A 00 68 ? ? ? ? EB");
 		ReadCall(pattern.count(3).get(1).get<uint8_t>(33), levelDataAdd);
 		InjectHook(pattern.count(3).get(1).get<uint32_t>(33), levelDataAdd_r229, PATCH_CALL);
