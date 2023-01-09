@@ -13,7 +13,6 @@ pzlPlayer__ptrPiece_Fn pzlPlayer__ptrPiece = nullptr; // extern inside puzzle.h
 j_j_j_FadeSet_Fn j_j_j_FadeSet = nullptr; // extern inside fade.h
 uint32_t* cSofdec = nullptr;
 
-
 //player.h externs
 cPlayer__subScrCheck_Fn cPlayer__subScrCheck = nullptr;
 cPlayer__endCamera_Fn cPlayer__endCamera = nullptr;
@@ -49,7 +48,6 @@ IDSystem__set_Fn IDSystem__set = nullptr;
 IDSystem__unitPtr_Fn IDSystem__unitPtr = nullptr;
 IDSystem__kill_Fn IDSystem__kill = nullptr;
 IDSystem__setTime_Fn IDSystem__setTime = nullptr;
-
 
 // cam_ctrl.h externs
 CameraControl* CamCtrl = nullptr;

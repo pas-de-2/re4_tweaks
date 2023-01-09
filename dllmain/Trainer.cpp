@@ -121,19 +121,14 @@ void __fastcall cPlayer__moveBinocular_hook(cPlayer* thisptr, void* unused)
 	switch (thisptr->m_BinoRno_56F)
 	{
 	case 1u:
-	{
-		//PartsPtr = j_cModel::getPartsPtr(thisptr, 3);
-		//j_SndCall(1u, 2u, &PartsPtr->world_70, 0, 0, 0);
+		con.log("entered binoculars");
 		bio4::SndCall(1u, 2u, 0, 0, 0, 0);
 		CamCtrl->HoldBinocular((uint32_t)GlobalPtr()->pRoom_40 + GlobalPtr()->pRoom_40[0x27], (uint32_t)GlobalPtr()->pRoom_40 + GlobalPtr()->pRoom_40[0x28], 0, 0);
-		//CamCtrl->SetBinocularRange(-0.059920002f, 0.26449999f, -0.25319999f, 0.14943001f);
-		con.log("entered binoculars");
 		thisptr->m_BinoRno_56F = 2;
 		break;
-	}
 	case 2u:
-		if (PadButtonStates[0] & uint32_t(GamePadButton::RS) //|| PadButtonStates[0] & uint32_t(GamePadButton::B)
-			|| (Key_btn_trg() & (uint64_t)KEY_BTN::KEY_CANCEL) == (uint64_t)KEY_BTN::KEY_CANCEL)
+		if ((Key_btn_trg() & (uint64_t)KEY_BTN::KEY_CANCEL) == (uint64_t)KEY_BTN::KEY_CANCEL
+			|| PadButtonStates[0] & uint32_t(GamePadButton::RS))
 		{
 			thisptr->m_BinoRno_56F = 3;
 		}
@@ -497,6 +492,29 @@ void Trainer_Init()
 		// uninvert the image when passing 0 as campos/target to HoldBinocular
 		pattern = hook::pattern("D9 86 CC 00 00 00 DC ? ? ? ? ? D9 9E");
 		injector::MakeNOP(pattern.count(1).get(0).get<uint32_t>(6), 6, true);
+
+		// remove hardcoded campos/target parameters in SubscreenExit outside R101 event
+		pattern = hook::pattern("D9 ? ? ? ? ? 8B ? ? ? ? ? D9 ? ? 8D ? ? D9 ? ? ? ? ? 50 A1 ? ? ? ? D9");
+		struct SubscreenExit_Binoculars_hook
+		{
+			void operator()(injector::reg_pack& regs)
+			{
+				Vec pLLoc = PlayerPtr()->pos_94;
+				Vec R101Loc = { -38027.0f, 141.0f, 11114.0f };
+
+				if (pLLoc.x == R101Loc.x && pLLoc.y == R101Loc.y && pLLoc.z == R101Loc.z) // TODO: come up with a better way to check for R101 event
+				{
+					Vec campos = { -38027.0f, 1891.0f, 11114.0f };
+					Vec target = { -3573.0f, 2400.0f, 2113.0f };
+
+					CamCtrl->HoldBinocular((uint32_t)GlobalPtr()->pRoom_40 + GlobalPtr()->pRoom_40[0x27], (uint32_t)GlobalPtr()->pRoom_40 + GlobalPtr()->pRoom_40[0x28], &campos, &target);
+					CamCtrl->SetBinocularRange(-0.059920002f, 0.26449999f, -0.25319999f, 0.14943001f);
+				}
+				else
+					CamCtrl->HoldBinocular((uint32_t)GlobalPtr()->pRoom_40 + GlobalPtr()->pRoom_40[0x27], (uint32_t)GlobalPtr()->pRoom_40 + GlobalPtr()->pRoom_40[0x28], 0, 0);
+
+			}
+		}; injector::MakeInline<SubscreenExit_Binoculars_hook>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(137));
 	}
 
 

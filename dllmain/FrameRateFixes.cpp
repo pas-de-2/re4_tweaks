@@ -2,7 +2,6 @@
 #include "dllmain.h"
 #include "Game.h"
 #include "Settings.h"
-#include "ConsoleWnd.h"
 
 uint32_t ModelForceRenderAll_EndTick = 0;
 
@@ -1630,8 +1629,8 @@ void re4t::init::FrameRateFixes()
 	{
 		static float fMercsDeltaTimer = 0.0F;
 
-		auto pattern = hook::pattern("A1 ? ? ? ? 80 ? ? 00 74 ? 6A 0E"); // R400Main());
-		struct MercsModeFPSFix
+		auto pattern = hook::pattern("A1 ? ? ? ? 80 ? ? 00 74 ? 6A 0E");
+		struct R400Main_MercsModeFPSFix
 		{
 			void operator()(injector::reg_pack& regs)
 			{
@@ -1644,7 +1643,7 @@ void re4t::init::FrameRateFixes()
 				else
 					regs.ef &= ~(1 << regs.zero_flag);
 			}
-		}; injector::MakeInline<MercsModeFPSFix>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(9));
+		}; injector::MakeInline<R400Main_MercsModeFPSFix>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(9));
 	}
 
 	// Copy delta-time related code from cSubChar::moveBust to cPlAshley::moveBust
