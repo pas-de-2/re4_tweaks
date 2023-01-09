@@ -2,8 +2,11 @@
 #include "dllmain.h"
 #include "Game.h"
 #include "Settings.h"
+#include "ConsoleWnd.h"
 
 uint32_t ModelForceRenderAll_EndTick = 0;
+
+uintptr_t* CameraBinocular_jmpAddr;
 
 // Called by AddOtModelPosRadius to check if model is in view of camera
 bool(*collision_sphere_hexahedron)(void*, void*);
@@ -53,6 +56,24 @@ void __cdecl OpenBoxMain_hook(int type, bool openedFlag, __int16 seId, int smdId
 	// Restore deltaTime_70
 	if (openedFlag)
 		GlobalPtr()->deltaTime_70 = deltaTimeBackup;
+}
+
+void __declspec(naked) CameraBinocular__move_XYsensitivity_hook()
+{
+	__asm {pushad}
+
+	static float deltaTime;
+	deltaTime = GlobalPtr()->deltaTime_70;
+
+	__asm
+	{
+		popad
+		fsubrp st(2), st
+		push edi
+		fxch st(1)
+		fmul deltaTime
+		jmp CameraBinocular_jmpAddr
+	}
 }
 
 void re4t::init::FrameRateFixes()
@@ -1552,6 +1573,59 @@ void re4t::init::FrameRateFixes()
 		injector::MakeInline<TurnSpeedLoad>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(6));
 	}
 
+	// Fix binoculars camera sensitivity
+	{
+		auto pattern = hook::pattern("D8 86 24 01 00 00 D9 9E 24 01 00 00 EB");
+		struct CameraBinocular__move__ZoomSensitivity_hook
+		{
+			void operator()(injector::reg_pack& regs)
+			{
+				float deltaTime = GlobalPtr()->deltaTime_70;
+				__asm
+				{
+					fmul deltaTime
+					fadd dword ptr[esi + 0x124]
+				}
+			}
+		}; injector::MakeInline<CameraBinocular__move__ZoomSensitivity_hook>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(6));
+
+		pattern = hook::pattern("DE E2 57 D9 C9");
+		injector::MakeNOP(pattern.count(1).get(0).get<uint32_t>(0), 5, true);
+		CameraBinocular_jmpAddr = pattern.count(1).get(0).get<uintptr_t>(5);
+		injector::MakeJMP(pattern.count(1).get(0).get<uint32_t>(0), CameraBinocular__move_XYsensitivity_hook);
+
+		/*
+		// WPadMode: untested ...
+		pattern = hook::pattern("D8 AE 24 01 00 00 D9 9E");
+		struct CameraBinocular__move__WPadMode_hook1
+		{
+			void operator()(injector::reg_pack& regs)
+			{
+				float deltaTime = GlobalPtr()->deltaTime_70;
+				__asm
+				{
+					fmul deltaTime
+					fsubr dword ptr[esi + 0x124]
+				}
+			}
+		}; injector::MakeInline<CameraBinocular__move__WPadMode_hook1>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(6));
+
+		pattern = hook::pattern("D9 86 24 01 00 00 D8 C1");
+		struct CameraBinocular__move__WPadMode_hook2
+		{
+			void operator()(injector::reg_pack& regs)
+			{
+				float deltaTime = GlobalPtr()->deltaTime_70;
+				__asm
+				{
+					fmul deltaTime
+					fld dword ptr[esi + 0x124]
+				}
+			}
+		}; injector::MakeInline<CameraBinocular__move__WPadMode_hook2>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(6));
+		*/
+	}
+
 	// Mercenaries: fix doubling of the village stage's passive difficulty gain in 60fps NTSC mode
 	{
 		static float fMercsDeltaTimer = 0.0F;
@@ -1612,7 +1686,6 @@ void re4t::init::FrameRateFixes()
 	InjectHook(caller, NowLoadingOff_Hook, PATCH_JUMP);
 
 	pattern = hook::pattern("D8 D1 DF E0 DD D9 F6 C4 41 75 ? D9 C0 D9 EE DA E9 DF E0 F6 C4 44 7A");
-
 	struct ModelRenderDistHack
 	{
 		void operator()(injector::reg_pack& regs)
@@ -1634,3 +1707,4 @@ void re4t::init::FrameRateFixes()
 
 	spd::log()->info("{} -> FPS fixes applied", __FUNCTION__);
 }
+

@@ -41,4 +41,6 @@ namespace bio4
   extern void(__cdecl* GXCopyTex)(void* dest, char clear, int a3);
 
   extern void(__cdecl* GXShaderCall)(int shaderNum); // UHD only
+
+  extern DWORD(__cdecl* GXLoadImagePack)(int a1, __int16 a2);
 };

@@ -13,7 +13,9 @@ enum LASER_TYPE
 
 class cPlayer;
 typedef BOOL(__fastcall* cPlayer__subScrCheck_Fn)(cPlayer* thisptr, void* unused);
+typedef bool(__thiscall* cPlayer__endCamera_Fn)(cPlayer* thisptr);
 extern cPlayer__subScrCheck_Fn cPlayer__subScrCheck;
+extern cPlayer__endCamera_Fn cPlayer__endCamera;
 
 class cPlayer : public cEm
 {
@@ -92,6 +94,11 @@ public:
 	BOOL subScrCheck()
 	{
 		return cPlayer__subScrCheck(this, nullptr);
+	}
+
+	bool endCamera()
+	{
+		return cPlayer__endCamera(this);
 	}
 };
 assert_size(cPlayer, 0x814);

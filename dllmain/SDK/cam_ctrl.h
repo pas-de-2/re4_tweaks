@@ -114,6 +114,11 @@ struct CUT_INFO
 };
 assert_size(CUT_INFO, 0x10);
 
+typedef void(__thiscall* CameraControl__HoldBinocular_Fn)(CameraControl* thisptr, uint32_t eff_addr, uint32_t uwf_addr, Vec* campos, Vec* target);
+typedef void(__thiscall* CameraControl__SetBinocularRange_Fn)(CameraControl* thisptr, float x_low, float x_up, float y_low, float y_up);
+extern CameraControl__HoldBinocular_Fn CameraControl__HoldBinocular;
+extern CameraControl__SetBinocularRange_Fn CameraControl__SetBinocularRange;
+
 class CameraControl
 {
 public:
@@ -163,5 +168,15 @@ public:
   float m_behind_A_ratio_76C;
   Vec campos_ofs_770;
   Vec target_ofs_77C;
+
+	inline void HoldBinocular(uint32_t eff_addr, uint32_t uwf_addr, Vec* campos, Vec* target)
+	{
+		return CameraControl__HoldBinocular(this, eff_addr, uwf_addr, campos, target);
+	}
+
+	inline void SetBinocularRange(float x_low, float x_up, float y_low, float y_up)
+	{
+		return CameraControl__SetBinocularRange(this, x_low, x_up, y_low, y_up);
+	}
 };
 assert_size(CameraControl, 0x788);

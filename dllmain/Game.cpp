@@ -10,11 +10,13 @@ bool gameIsDebugBuild = false;
 SND_CTRL* Snd_ctrl_work = nullptr; // extern inside Game.h
 SUB_SCREEN* SubScreenWk = nullptr; // extern inside sscrn.h
 pzlPlayer__ptrPiece_Fn pzlPlayer__ptrPiece = nullptr; // extern inside puzzle.h
-CameraControl* CamCtrl = nullptr; // extern inside cam_ctrl.h
-cPlayer__subScrCheck_Fn cPlayer__subScrCheck = nullptr; // extern inside player.h
 j_j_j_FadeSet_Fn j_j_j_FadeSet = nullptr; // extern inside fade.h
 uint32_t* cSofdec = nullptr;
 
+
+//player.h externs
+cPlayer__subScrCheck_Fn cPlayer__subScrCheck = nullptr;
+cPlayer__endCamera_Fn cPlayer__endCamera = nullptr;
 
 // light.h externs
 cLightMgr* LightMgr = nullptr;
@@ -47,6 +49,12 @@ IDSystem__set_Fn IDSystem__set = nullptr;
 IDSystem__unitPtr_Fn IDSystem__unitPtr = nullptr;
 IDSystem__kill_Fn IDSystem__kill = nullptr;
 IDSystem__setTime_Fn IDSystem__setTime = nullptr;
+
+
+// cam_ctrl.h externs
+CameraControl* CamCtrl = nullptr;
+CameraControl__HoldBinocular_Fn CameraControl__HoldBinocular = nullptr;
+CameraControl__SetBinocularRange_Fn CameraControl__SetBinocularRange = nullptr;
 
 // roomdata.h externs
 cRoomData* RoomData = nullptr;
@@ -100,6 +108,8 @@ namespace bio4 {
 	void(__cdecl* GXCopyTex)(void* dest, char clear, int a3);
 
 	void(__cdecl* GXShaderCall)(int shaderNum);
+
+	DWORD(__cdecl* GXLoadImagePack)(int a1, __int16 a2);
 
 	void(__cdecl* CameraCurrentProjection)();
 
@@ -1113,6 +1123,18 @@ bool re4t::init::Game()
 	pattern = hook::pattern("D9 EE B9 ? ? ? ? D9 9E A4 00 00 00 E8 ? ? ? ? D9 EE");
 	CamCtrl = *pattern.count(1).get(0).get<CameraControl*>(3);
 
+	// CameraControl::HoldBinocular ptr
+	pattern = hook::pattern("8B 80 9C 00 00 00 03 D1 03 C1 52 50 B9 ? ? ? ? E8 ? ? ? ? D9");
+	ReadCall(pattern.count(1).get(0).get<uint8_t>(17), CameraControl__HoldBinocular);
+
+	// CameraControl::SetBinocularRange ptr
+	pattern = hook::pattern("E8 ? ? ? ? A1 ? ? ? ? 81 88 70 01 00 00 00 00 00 10 6A");
+	ReadCall(pattern.count(1).get(0).get<uint8_t>(0), CameraControl__SetBinocularRange);
+
+	// cPlayer::EndCamera ptr
+	pattern = hook::pattern("E8 ? ? ? ? 56 C7 86 FC 00 00 00 05");
+	ReadCall(pattern.count(1).get(0).get<uint8_t>(0), cPlayer__endCamera);
+
 	// Sofdec ptr
 	pattern = hook::pattern("B9 ? ? ? ? C6 86 1F 05 00 00 01");
 	cSofdec = *pattern.count(1).get(0).get<uint32_t*>(1);
@@ -1177,6 +1199,9 @@ bool re4t::init::Game()
 
 	pattern = hook::pattern("E8 ? ? ? ? 8B 4D ? 51 E8 ? ? ? ? 8B 4D ? 83 C4 ? 33 CD");
 	ReadCall(injector::GetBranchDestination(pattern.get_first()).as_int(), bio4::GXTexCoord2f32);
+
+	pattern = hook::pattern("E8 ? ? ? ? 8B 86 84 00 00 00 83 C4 08 6A 00 50");
+	ReadCall(injector::GetBranchDestination(pattern.get_first()).as_int(), bio4::GXLoadImagePack);
 
 	pattern = hook::pattern("E8 ? ? ? ? 8A 46 30 3C FD");
 	ReadCall(pattern.count(1).get(0).get<uint8_t>(0x0), bio4::CameraCurrentProjection); // 0x59F3A0

@@ -12,6 +12,8 @@
 #include "Trainer.h"
 #include <DirectXMath.h>
 
+extern uint32_t* PadButtonStates; // tool_menu.cpp
+
 int flagCategory = 0; // Flag editor category, matches with CategoryInfoIdx enum in Trainer.h
 std::optional<uint32_t> FlagsExtraValue;
 ImGuiTextFilterCustom flagsFilter;
@@ -111,6 +113,67 @@ std::vector<uint32_t> KeyComboDebugTrg;
 
 std::vector<uint32_t> KeyComboWeaponHotkey[5];
 std::vector<uint32_t> KeyComboLastWeaponHotkey;
+
+std::vector<uint32_t> KeyComboBinoculars;
+
+void __fastcall cPlayer__moveBinocular_hook(cPlayer* thisptr, void* unused)
+{
+	switch (thisptr->m_BinoRno_56F)
+	{
+	case 1u:
+	{
+		//PartsPtr = j_cModel::getPartsPtr(thisptr, 3);
+		//j_SndCall(1u, 2u, &PartsPtr->world_70, 0, 0, 0);
+		bio4::SndCall(1u, 2u, 0, 0, 0, 0);
+		CamCtrl->HoldBinocular((uint32_t)GlobalPtr()->pRoom_40 + GlobalPtr()->pRoom_40[0x27], (uint32_t)GlobalPtr()->pRoom_40 + GlobalPtr()->pRoom_40[0x28], 0, 0);
+		//CamCtrl->SetBinocularRange(-0.059920002f, 0.26449999f, -0.25319999f, 0.14943001f);
+		con.log("entered binoculars");
+		thisptr->m_BinoRno_56F = 2;
+		break;
+	}
+	case 2u:
+		if (PadButtonStates[0] & uint32_t(GamePadButton::RS) //|| PadButtonStates[0] & uint32_t(GamePadButton::B)
+			|| (Key_btn_trg() & (uint64_t)KEY_BTN::KEY_CANCEL) == (uint64_t)KEY_BTN::KEY_CANCEL)
+		{
+			thisptr->m_BinoRno_56F = 3;
+		}
+		break;
+	case 3u:
+		con.log("trying to exit binoculars");
+		PlayerPtr()->endCamera();
+		thisptr->m_BinoRno_56F = 0;
+		break;
+	}
+}
+
+void BinocularKeyPressed()
+{
+	if (ImGuiShouldAcceptInput())
+		return; // don't apply hotkeys while in ImGui
+
+	cPlayer* player = PlayerPtr();
+	if (!player)
+		return;
+
+	// Routine 4 = reloading, 2 = shooting
+	if (player->r_no_2_FE == 4 || player->r_no_2_FE == 2)
+		return;
+
+	// Function used by game to determine whether inventory/subscreens can be opened
+	// Swapping weapons would normally require going through inventory, so we should probably make use of this too
+	// (fixes issues with swapping weapons during certain actions like jumping, which would interrupt the actions anim and usually place player outside of collision)
+	if (!player->subScrCheck())
+		return;
+
+	// reimplimentation of cPlayer::beginBinocular
+	if (GlobalPtr()->pl_type_4FC8 == PlayerCharacter::Leon && (player->stat_468 & 4) == 0)
+	{
+		player->stat_468 |= 4u;
+		bio4::KeyStop(0xF12000EFFF1000ui64);
+		player->m_BinoRno_56F = 1;
+	}
+}
+
 
 void HotkeySlotPressed(int slotIdx, bool forceUseWepID = false)
 {
@@ -295,6 +358,16 @@ void Trainer_ParseKeyCombos()
 
 		pInput->register_hotkey({ []() { HotkeySlotPressed(last_weaponId, true); }, &KeyComboLastWeaponHotkey });
 	}
+
+	// Binoculars
+	{
+		KeyComboBinoculars.clear();
+		KeyComboBinoculars = re4t::cfg->ParseKeyCombo("F4");
+
+		pInput->register_hotkey({ []() {
+			BinocularKeyPressed();
+		}, &KeyComboBinoculars });
+	}
 }
 
 void(__cdecl* GameAddPoint_orig)(LVADD type);
@@ -414,6 +487,18 @@ void Trainer_Init()
 	GLOBAL_WK* globals = GlobalPtr();
 	if (!globals)
 		return;
+
+	// restore RE4 demo binoculars keybind
+	{
+		// hook cPlayer::moveBinocular
+		auto pattern = hook::pattern("8B CE E8 ? ? ? ? 8B CE E8 ? ? ? ? 0F B6 86 FC");
+		InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(2)).as_int(), cPlayer__moveBinocular_hook, PATCH_JUMP);
+
+		// uninvert the image when passing 0 as campos/target to HoldBinocular
+		pattern = hook::pattern("D9 86 CC 00 00 00 DC ? ? ? ? ? D9 9E");
+		injector::MakeNOP(pattern.count(1).get(0).get<uint32_t>(6), 6, true);
+	}
+
 
 	if (!GameVersionIsDebug())
 	{
