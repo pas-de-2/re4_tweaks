@@ -15,7 +15,6 @@ cPlayer__subScrCheck_Fn cPlayer__subScrCheck = nullptr; // extern inside player.
 j_j_j_FadeSet_Fn j_j_j_FadeSet = nullptr; // extern inside fade.h
 uint32_t* cSofdec = nullptr;
 
-
 // light.h externs
 cLightMgr* LightMgr = nullptr;
 cLightMgr__setEnv_Fn cLightMgr__setEnv = nullptr;
@@ -32,6 +31,7 @@ cItemMgr__get_Fn cItemMgr__get = nullptr;
 cItemMgr__erase_Fn cItemMgr__erase = nullptr;
 cItemMgr__num_0_Fn cItemMgr__num_0 = nullptr;
 cItemMgr__bulletNumTotal_Fn cItemMgr__bulletNumTotal = nullptr;
+cItem__specialTuned_Fn cItem__specialTuned = nullptr;
 WeaponId2ChargeNum_Fn WeaponId2ChargeNum = nullptr;
 
 // event.h externs
@@ -45,8 +45,18 @@ cSatMgr* EatMgr = nullptr;
 // ID.h externs
 IDSystem__set_Fn IDSystem__set = nullptr;
 IDSystem__unitPtr_Fn IDSystem__unitPtr = nullptr;
+IDSystem__unitPtr2_Fn IDSystem__unitPtr2 = nullptr;
 IDSystem__kill_Fn IDSystem__kill = nullptr;
 IDSystem__setTime_Fn IDSystem__setTime = nullptr;
+
+// Cockpit.h externs
+Cockpit* Cckpt = nullptr;
+LifeMeter__roomInit_Fn LifeMeter__roomInit = nullptr;
+BulletInfo__roomInit_Fn BulletInfo__roomInit = nullptr;
+
+// message.h externs
+MessageControl__setFontSize_Fn MessageControl__setFontSize = nullptr;
+MessageControl__setLayout_Fn MessageControl__setLayout = nullptr;
 
 // roomdata.h externs
 cRoomData* RoomData = nullptr;
@@ -57,6 +67,9 @@ namespace bio4 {
 	bool(__cdecl* PutInCase)(ITEM_ID item_id, uint16_t item_num, uint32_t size);
 	void(__cdecl* itemInfo)(ITEM_ID id, ITEM_INFO* info);
 	uint8_t(__cdecl* WeaponId2MaxLevel)(ITEM_ID item_id, int type);
+	uint8_t(__cdecl* WeaponId2WeaponNo)(ITEM_ID item_id);
+
+	void(__cdecl* levelDataAdd)(MERCHANT_DATA* p_data, LEVEL_INFO* p_level, uint32_t add_flag);
 
 	void(__cdecl* WeaponChange)();
 	void(__cdecl* PlChangeData)();
@@ -110,9 +123,20 @@ namespace bio4 {
 
 	void(__cdecl* QuakeExec)(uint32_t No, uint32_t Delay, int Time, float Scale, uint32_t Axis);
   
-	bool(__cdecl* joyFireOn)();
+	BOOL(__cdecl* joyFireTrg)();
+	BOOL(__cdecl* joyFireOn)();
 
 	uint8_t(__cdecl* Rnd)();
+
+	namespace g_D3D {
+		uint32_t* RefreshRate = nullptr;
+		uint32_t* Width_1 = nullptr;
+		uint32_t* Height_1 = nullptr;
+		bool* Fullscreen = nullptr;
+	}
+
+	void(__cdecl* D3D_SetupResolution)(int Width, int Height);
+	void(__cdecl* ScreenReSize)(int Width, int Height);
 };
 
 // Current play time (H, M, S)
@@ -166,7 +190,6 @@ std::unordered_map<int, std::string> EmNames =
 	{0x0F, "Boat"},
 	{0x11, "Zealot"},
 	{0x12, "Ganado"},
-	{0x13, "Ganado"},
 	{0x13, "Ganado / Merchant"},
 	{0x14, "Zealot / Merchant"},
 	{0x15, "Ganado"},
@@ -364,9 +387,23 @@ bool GameVersionIsDebug()
 }
 
 uint32_t* ptrGameVariableFrameRate;
-int GameVariableFrameRate()
+int GetGameVariableFrameRate()
 {
 	return *(int32_t*)(ptrGameVariableFrameRate);
+}
+
+void SetGameVariableFrameRate(int newRate)
+{
+	*(int32_t*)(ptrGameVariableFrameRate) = newRate;
+}
+
+INIConfig* INIConfig_ptr = nullptr;
+INIConfig* g_INIConfig()
+{
+	if (!INIConfig_ptr)
+		return nullptr;
+
+	return INIConfig_ptr;
 }
 
 int CurrentFrameRate()
@@ -497,10 +534,34 @@ TITLE_WORK* TitleWorkPtr()
 	return TitleWork_ptr;
 }
 
-IDSystem* IDSystem_ptr = nullptr;
-IDSystem* IDSystemPtr()
+MessageControl* cMes_ptr = nullptr;
+MessageControl* MessageControlPtr()
 {
-	return IDSystem_ptr;
+	return cMes_ptr;
+}
+
+IDSystem* IdSys_ptr = nullptr;
+IDSystem* IdSysPtr()
+{
+	return IdSys_ptr;
+}
+
+IDSystem* IdSub_ptr = nullptr;
+IDSystem* IdSubPtr()
+{
+	return IdSub_ptr;
+}
+
+IDSystem* IdNum_ptr = nullptr;
+IDSystem* IdNumPtr()
+{
+	return IdNum_ptr;
+}
+
+MercID* mercId_ptr = nullptr;
+MercID* mercIdPtr()
+{
+	return mercId_ptr;
 }
 
 FADE_WORK(*FadeWork_ptr)[4];
@@ -818,36 +879,73 @@ bool AreaJump(uint16_t roomNo, Vec& position, float rotation)
 bool re4t::init::Game()
 {
 	// Detect game version
-	auto pattern = hook::pattern("31 2E ? ? ? 00 00 00 6D 6F 76 69 65 2F 64 65 6D 6F 30 65 6E 67 2E 73 66 64");
-	int ver = injector::ReadMemory<int>(pattern.count(1).get(0).get<uint32_t>(2));
-
-	if (ver == 0x362E30) {
-		gameVersion = "1.0.6";
-	}
-	else if (ver == 0x302E31) {
-		gameVersion = "1.1.0";
-	}
-	else {
-		::MessageBoxA(NULL, "This version of RE4 is not supported.\nre4_tweaks will be disabled.", "re4_tweaks", MB_ICONERROR | MB_SYSTEMMODAL | MB_SETFOREGROUND);
-		return false;
-	}
-
-	// Check for part of gameDebug function, if exists this must be a debug-enabled build
-	pattern = hook::pattern("6A 00 6A 00 6A 08 68 AE 01 00 00 6A 10 6A 0A");
-	if (pattern.size() > 0)
 	{
-		gameVersion += "d";
-		gameIsDebugBuild = true;
-	}
+		// Try to get the version string that the game displays in the titleMenu
+		auto pattern = hook::pattern("68 ? ? ? ? 8B C8 E8 ? ? ? ? DC 2D ? ? ? ? A1 ? ? ? ? DC 25");
+		if (!pattern.empty())
+		{
+			std::string titleMenu_ver = **pattern.count(1).get(0).get<char(*)[6]>(1);
 
-	#ifdef VERBOSE
-	con.log("Game version = %s", GameVersion().c_str());
-	#endif
+			if (titleMenu_ver == "1.0.6")
+				gameVersion = "1.0.6";
+			else if (titleMenu_ver == "1.1.0")
+				gameVersion = "1.1.0";
+			else // We don't support legacy ver 1.0.2
+			{
+				MessageBoxA(NULL, "This version of Resident Evil 4 is not supported.\nre4_tweaks has been disabled.", "re4_tweaks", MB_ICONWARNING | MB_SYSTEMMODAL | MB_SETFOREGROUND);
+				return false;
+			}
+		}
+		else // Unknown .exe, as every supported should have the version str
+		{
+			MessageBoxA(NULL, "This version of Resident Evil 4 is not supported.\nre4_tweaks has been disabled.", "re4_tweaks", MB_ICONWARNING | MB_SYSTEMMODAL | MB_SETFOREGROUND);
+			return false;
+		}
+
+		// Check if setLanguage() exists. If not, this is a JP build
+		pattern = hook::pattern("8A ? 08 8B ? ? ? ? ? 88 ? ? ? ? ? C3 8B FF");
+		if (pattern.empty())
+		{
+			gameVersion += "j";
+		}
+
+		// Check if the EXT_CMD_MERCENARIES case exists in titleExtraSelect. If not, this is a German build
+		pattern = hook::pattern("B8 ? ? ? ? C3 B8 ? ? ? ? C3 B8 ? ? ? ? C3 8B 56 ? 8B C1 57 25");
+		if (pattern.empty())
+		{
+			gameVersion += "g";
+		}
+
+		// Check for part of gameDebug function, if exists this must be a debug-enabled build
+		pattern = hook::pattern("6A 00 6A 00 6A 08 68 AE 01 00 00 6A 10 6A 0A");
+		if (!pattern.empty())
+		{
+			gameVersion += "d";
+			gameIsDebugBuild = true;
+		}
+
+		#ifdef VERBOSE
+		con.log("Game version = %s", GameVersion().c_str());
+		#endif
+	}
 
 	// Pointer to users variableframerate setting value
-	pattern = hook::pattern("89 0D ? ? ? ? 0F 95 ? 88 15 ? ? ? ? D9 1D ? ? ? ? A3 ? ? ? ? DB 46 ? D9 1D ? ? ? ? 8B 4E ? 89 0D ? ? ? ? 8B 4D ? 5E");
+	auto pattern = hook::pattern("89 0D ? ? ? ? 0F 95 ? 88 15 ? ? ? ? D9 1D ? ? ? ? A3 ? ? ? ? DB 46 ? D9 1D ? ? ? ? 8B 4E ? 89 0D ? ? ? ? 8B 4D ? 5E");
 	ptrGameVariableFrameRate = *pattern.count(1).get(0).get<uint32_t*>(2);
 
+	// Get pointer to QLOC's INIConfig
+	pattern = hook::pattern("8B 8D ? ? ? ? 51 E8 ? ? ? ? 83 7E");
+	struct INIConfig_get
+	{
+		void operator()(injector::reg_pack& regs)
+		{
+			// Code we replaced
+			regs.ecx = *(uint32_t*)(regs.ebp - 0xA08);
+
+			INIConfig_ptr = (INIConfig*)regs.esi;
+		}
+	}; injector::MakeInline<INIConfig_get>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(6));
+	
 	// LastUsedDevice pointer
 	pattern = hook::pattern("A1 ? ? ? ? 85 C0 74 ? 83 F8 ? 74 ? 81 F9");
 	ptrLastUsedDevice = *pattern.count(1).get(0).get<uint32_t*>(1);
@@ -919,23 +1017,30 @@ bool re4t::init::Game()
 
 	// Pointer to IDSystem
 	pattern = hook::pattern("B9 ? ? ? ? E8 ? ? ? ? 8B ? ? ? ? ? 8B C8 D9");
-	IDSystem_ptr = *pattern.count(1).get(0).get<IDSystem*>(1);
-
-	// pointer to IDSystem::set
+	IdSys_ptr = *pattern.count(1).get(0).get<IDSystem*>(1);
+	pattern = hook::pattern("8D 48 FF 80 F9 01 77 ? C7 ? ? ? ? ? EB");
+	IdSub_ptr = *pattern.count(1).get(0).get<IDSystem*>(10);
+	pattern = hook::pattern("83 C4 08 B9 ? ? ? ? 39");
+	IdNum_ptr = *pattern.count(1).get(0).get<IDSystem*>(4);
+	pattern = hook::pattern("83 C4 18 6A 60 B9");
+	mercId_ptr = *pattern.count(1).get(0).get<MercID*>(6);
 	pattern = hook::pattern("E8 ? ? ? ? 6A 29 68 FE 00 00 00 B9");
 	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(0)).as_int(), IDSystem__set);
-
-	// pointer to IDSystem::unitPtr
 	pattern = hook::pattern("E8 ? ? ? ? 8B ? ? ? ? ? 8B C8 D9 81 94 00 00 00 8B");
 	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(0)).as_int(), IDSystem__unitPtr);
-
-	// pointer to IDSystem::kill
+	pattern = hook::pattern("E8 ? ? ? ? D9 ? ? ? ? ? D9 98 98 00 00 00 EB");
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(0)).as_int(), IDSystem__unitPtr2);
 	pattern = hook::pattern("E8 ? ? ? ? 68 99 00 00 00 68 FF 00 00 00 B9 ? ? ? ? E8 ? ? ? ? 8B 46 20 8B");
 	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(0)).as_int(), IDSystem__kill);
-
-	// pointer to IDSystem::setTime
 	pattern = hook::pattern("E8 ? ? ? ? FE 46 01 5F 5E 8B E5 ");
 	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(0)).as_int(), IDSystem__setTime);
+
+	// MessageControl ptrs
+	pattern = hook::pattern("51 52 6A 04 B9 ? ? ? ? 8B F0 E8");
+	cMes_ptr = *pattern.count(1).get(0).get<MessageControl*>(5);
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(11)).as_int(), MessageControl__setFontSize);
+	pattern = hook::pattern("E8 ? ? ? ? 8B ? ? ? ? ? 53 53 52 C7");
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(0)).as_int(), MessageControl__setLayout);
 
 	// pointer to EmMgr (instance of cManager<cEm>)
 	pattern = hook::pattern("81 E1 01 02 00 00 83 F9 01 75 ? 50 B9 ? ? ? ? E8");
@@ -988,7 +1093,6 @@ bool re4t::init::Game()
 	pattern = hook::pattern("E8 ? ? ? ? 0F B7 C0 85 C0 74 05 D1");
 	ReadCall(pattern.count(1).get(0).get<uint8_t>(0), cItemMgr__bulletNumTotal);
 
-
 	// EvtMgr
 	pattern = hook::pattern("75 ? 6A 00 6A 00 68 ? ? ? ? B9 ? ? ? ? E8 ? ? ? ? 84 C0");
 	EvtMgr = *pattern.count(1).get(0).get<EventMgr*>(0xC);
@@ -1040,9 +1144,21 @@ bool re4t::init::Game()
 	pattern = hook::pattern("E8 ? ? ? ? 0F B6 D0 0F BE C3 83 C4 08 3B C2 75 70");
 	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(0)).as_int(), bio4::WeaponId2MaxLevel);
 
+	// WeaponId2WeaponNo funcptr
+	pattern = hook::pattern("E8 ? ? ? ? 0F B7 15 ? ? ? ? 0F B6 C8 52 89 4D E8 E8 ? ? ? ? 0F B6 C0");
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(0)).as_int(), bio4::WeaponId2WeaponNo);
+
 	// WeaponId2ChargeNum funcptr
 	pattern = hook::pattern("E8 ? ? ? ? B9 ? ? ? ? 83 C4 ? 66 3B ? 0F 84");
 	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(0)).as_int(), WeaponId2ChargeNum);
+
+	// cItem::specialTuned funcptr
+	pattern = hook::pattern("8B CE E8 ? ? ? ? 84 C0 74 ? C6");
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(2)).as_int(), cItem__specialTuned);
+
+	// levelDataAdd funcptr
+	pattern = hook::pattern("E8 ? ? ? ? A1 ? ? ? ? 83 C4 ? 81 88 ? ? ? ? ? ? ? ? 8B 0D ? ? ? ? 0F B7 81 ? ? ? ? 8D 88");
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(0)).as_int(), bio4::levelDataAdd);
 
 	// OptionOpenFlag <- Maybe should be somewhere else in the SDK/Game.cpp?
 	pattern = hook::pattern("A2 ? ? ? ? A2 ? ? ? ? A1 ? ? ? ? 81 48 ? ? ? ? ? E9");
@@ -1052,9 +1168,22 @@ bool re4t::init::Game()
 	pattern = hook::pattern("75 ? E8 ? ? ? ? E8 ? ? ? ? 38 1D ? ? ? ?");
 	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(0x7)).as_int(), bio4::PlChangeData);
 
+	// joyFireTrg ptr
+	pattern = hook::pattern("E8 ? ? ? ? 85 C0 74 ? 8B 96 D8 07 00 00 8B 4A 34 F6 81 55 03");
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(0)).as_int(), bio4::joyFireTrg);
+
 	// joyFireOn ptr
 	pattern = hook::pattern("E8 ? ? ? ? 85 C0 74 ? 8B 8E D8 07 00 00 8B 49 34 E8 ? ? ? ? 84 C0 0F ? ? ? ? ? 8B");
 	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(0)).as_int(), bio4::joyFireOn);
+
+	// Cockpit ptr
+	pattern = hook::pattern("FF FE FF FF B9");
+	Cckpt = *pattern.count(1).get(0).get<Cockpit*>(5);
+	// Lifemeter::RoomInit
+	pattern = hook::pattern("66 C7 86 BD 00 00 00 00 00 E8");
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(9)).as_int(), LifeMeter__roomInit);
+	// BulletInfo::RoomInit
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(17)).as_int(), BulletInfo__roomInit);
 
 	// SubScreenOpen funcptr
 	pattern = hook::pattern("55 8B EC A1 ? ? ? ? B9 ? ? ? ? 85 88");
@@ -1153,6 +1282,24 @@ bool re4t::init::Game()
 
 	pattern = hook::pattern("E8 ? ? ? ? 83 C4 04 4E 75 C1 8B 0D ? ? ? ? 8B 91");
 	ReadCall(pattern.count(2).get(0).get<uint8_t>(0), bio4::SceSleep);
+
+	// Get pointer to some D3D globals
+	pattern = hook::pattern("89 35 ? ? ? ? 89 15 ? ? ? ? A3 ? ? ? ? 89");
+	bio4::g_D3D::RefreshRate = (uint32_t*)*pattern.count(1).get(0).get<uint32_t>(2);
+
+	pattern = hook::pattern("8B 15 ? ? ? ? 3B 14 ? 75 ? 8B 15 ? ? ? ? 3B 54 38");
+	bio4::g_D3D::Width_1 = (uint32_t*)*pattern.count(1).get(0).get<uint32_t>(2);
+	bio4::g_D3D::Height_1 = bio4::g_D3D::Width_1 + 1;
+	
+	pattern = hook::pattern("38 1D ? ? ? ? 74 0C BE ? ? ? ? BF ? ? ? ? EB 1F 8B 15 ? ? ? ? 6A 40 51 50 53");
+	bio4::g_D3D::Fullscreen = (bool*)*pattern.count(1).get(0).get<uint32_t>(2);
+
+	// Pointer to D3D_SetupResolution
+	pattern = hook::pattern("E8 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? E8 ? ? ? ? 83 C4 ? E8 ? ? ? ? 83 C0 ? 50 E8 ? ? ? ? 8B 0E");
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(0)).as_int(), bio4::D3D_SetupResolution);
+
+	// Pointer to D3D_SetupResolution
+	ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(15)).as_int(), bio4::ScreenReSize);
 
 	// Store current game time that's being calculated inside GetGameTime
 	pattern = hook::pattern("8B 55 ? 8B 45 ? 51 8B 4D ? 52 50 51 68");

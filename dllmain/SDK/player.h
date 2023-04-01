@@ -30,7 +30,7 @@ public:
 	int32_t m_Work1_42C;
 	int32_t m_Work2_430;
 	int32_t m_Work3_434;
-	int32_t plunk_438;
+	int32_t m_Work4_438;
 	float m_Work5_43C;
 	int32_t m_Work6_440;
 	int32_t m_Work7_444;
@@ -85,7 +85,8 @@ public:
 	cMotBase* MotBase_7F4;
 	Vec pos_bak_7F8;
 	LASER_TYPE laser_type_804;
-	uint8_t plunk_field_808;
+	uint8_t JumpFallInProgress_mb_808;
+	uint8_t pad_809[3];
 	float m_invisi_rate_80C;
 	uint32_t pc_func_810;
 

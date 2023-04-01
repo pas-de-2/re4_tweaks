@@ -12,6 +12,7 @@
 #include "UI_Utility.h"
 #include "Trainer.h"
 #include "AudioTweaks.h"
+#include "HUDTweaks.h"
 #include "../dxvk/src/config.h"
 
 bool bCfgMenuOpen = false;
@@ -43,7 +44,8 @@ void PauseGame(bool setPaused)
 		SubScreenWk->open_flag_2C != 0 ||
 		OptionOpenFlag() ||
 		GlobalPtr()->playerHpCur_4FB4 == 0 ||
-		GlobalPtr()->subHpCur_4FB8 == 0;
+		GlobalPtr()->subHpCur_4FB8 == 0 ||
+		EvtMgr->IsAliveEvt(EvtMgr->NowExeEvtName_1C, 0, AliveEvtType::AliveEvtTypeNormal);
 
 	if (disable)
 		return;
@@ -103,22 +105,24 @@ void cfgMenuRender()
 		topright_size_y *= esHook._cur_monitor_dpi;
 
 		// Left side BG
-		draw->AddRectFilled(ImVec2(pos.x + 0, pos.y + 0), ImVec2(pos.x + leftside_size_x + 1, pos.y + ImGui::GetWindowHeight()), ImColor(8, 8, 8, 230), 10.f, 5);
+		draw->AddRectFilled(ImVec2(pos.x + 0, pos.y + 0), ImVec2(pos.x + leftside_size_x + 1, pos.y + ImGui::GetWindowHeight()), ImGui::GetColorU32(ImGuiCol_WindowBg), 10.f, 5);
 
 		// Right side BG
-		draw->AddRectFilled(ImVec2(pos.x + leftside_size_x, pos.y + 0), ImVec2(pos.x + ImGui::GetWindowWidth(), pos.y + ImGui::GetWindowHeight()), ImColor(8, 8, 8, 250), 8.f, 10);
+		draw->AddRectFilled(ImVec2(pos.x + leftside_size_x, pos.y + 0), ImVec2(pos.x + ImGui::GetWindowWidth(), pos.y + ImGui::GetWindowHeight()), ImGui::GetColorU32(ImGuiCol_ChildBg), 8.f, 10);
 
 		// Top right separator
 		draw->AddLine(ImVec2(pos.x + leftside_size_x + 10, round(pos.y + topright_size_y)), ImVec2(pos.x + ImGui::GetItemRectSize().x - 15, round(pos.y + topright_size_y)), ImColor(150, 10, 40));
 
 		// Setup tab buttons
 		{
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 			ImGui::BeginChild("left side", ImVec2(leftside_size_x, 0));
+			ImGui::PopStyleColor();
 
 			ImColor icn_color = ImColor(230, 15, 95);
 
-			ImVec4 active = ImVec4(150.0f / 255.0f, 10.0f / 255.0f, 40.0f / 255.0f, 255.0f / 255.0f);
-			ImVec4 inactive = ImVec4(31.0f / 255.0f, 30.0f / 255.0f, 31.0f / 255.0f, 0.0f / 255.0f);
+			ImColor active = ImColor(150, 10, 40, 255);
+			ImColor inactive = ImColor(31, 30, 31, 0);
 
 			ImVec2 btn_size = ImVec2(leftside_size_x - 28, 31 * re4t::cfg->fFontSizeScale * esHook._cur_monitor_dpi);
 
@@ -297,7 +301,9 @@ void cfgMenuRender()
 
 		// Setup top right
 		{
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 			ImGui::BeginChild("top right", ImVec2(0, topright_size_y));
+			ImGui::PopStyleColor();
 
 			// "Pause game" option
 			if (ImGui::Checkbox("Pause game", &bPauseGameWhileInCfgMenu))
@@ -325,7 +331,8 @@ void cfgMenuRender()
 
 			// Search bar
 			ImGui::PushID("#optionsfilter");
-			OptionsFilter.Draw("", 150.0f * re4t::cfg->fFontSizeScale * esHook._cur_monitor_dpi);
+			static const std::string searchLabel = ICON_FA_SEARCH + std::string(" Search");
+			OptionsFilter.Draw2(searchLabel.c_str(), 150.0f * re4t::cfg->fFontSizeScale * esHook._cur_monitor_dpi);
 			ImGui::PopID();
 			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip("Search for options in this tab");
@@ -355,13 +362,13 @@ void cfgMenuRender()
 		{
 			ImGui::SetCursorPos(ImVec2(leftside_size_x + 16, topright_size_y + 10));
 
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 			ImGui::BeginChild("right side", ImVec2(0, 0));
+			ImGui::PopStyleColor();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(16.f, 16.f));
 
 			int columnCount = 1 + (int)((ImGui::GetWindowWidth() / (716.0f * esHook._cur_monitor_dpi)) * 1.5f);
-
-			ImColor itmbgColor = ImColor(25, 20, 20, 166);
 
 			if (Tab == MenuTab::Display)
 			{
@@ -379,11 +386,11 @@ void cfgMenuRender()
 							re4t::cfg->HasUnsavedChanges = true;
 							NeedsToRestart = true;
 						}
-
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
 						ImGui::TextWrapped("Enables the use of the DXVK-based vulkan renderer, which provides better performance on newer hardware.");
+						ImGui::TextWrapped("(Not recommended on older GPUs)");
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
 
@@ -416,16 +423,6 @@ void cfgMenuRender()
 						}
 
 						ImGui::TextWrapped("Shows the name of the GPU and the driver version.");
-
-						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-
-						if (ImGui::Checkbox("DisableAsync", &re4t::dxvk::cfg->bDisableAsync))
-						{
-							re4t::cfg->HasUnsavedChanges = true;
-							NeedsToRestart = true;
-						}
-
-						ImGui::TextWrapped("Disables asynchronous shader compilation. Not recommended.");
 
 						ImGui::EndDisabled();
 					}
@@ -467,7 +464,10 @@ void cfgMenuRender()
 						if (ImGui::Checkbox("DisableVsync", &re4t::cfg->bDisableVsync))
 						{
 							re4t::cfg->HasUnsavedChanges = true;
-							NeedsToRestart = true;
+
+							// Trigger resolution change to make apply the new v-sync option
+							bio4::D3D_SetupResolution(*bio4::g_D3D::Width_1, *bio4::g_D3D::Height_1);
+							bio4::ScreenReSize(0x200, 0x1C0);
 						}
 
 						ImGui_ItemSeparator();
@@ -495,7 +495,12 @@ void cfgMenuRender()
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
 
 						ImGui::BeginDisabled(!re4t::cfg->bUltraWideAspectSupport);
-						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("SideAlignHUD", &re4t::cfg->bSideAlignHUD);
+						if (ImGui::Checkbox("SideAlignHUD", &re4t::cfg->bSideAlignHUD))
+						{
+							re4t::cfg->HasUnsavedChanges = true;
+							re4t::HUDTweaks::ResetLifeMeter();
+						}
+
 						ImGui::TextWrapped("Moves the HUD to the right side of the screen.");
 
 						ImGui::Spacing();
@@ -552,29 +557,15 @@ void cfgMenuRender()
 						ImGui::TextWrapped("Allows game to use non - 60Hz refresh rates in fullscreen, fixing the black screen issue people have when starting the game.");
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui_ItemSeparator2();
-						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
 
-						ImGui::Text("CustomRefreshRate");
-						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-
-						ImGui::PushItemWidth(100 * re4t::cfg->fFontSizeScale * esHook._cur_monitor_dpi);
 						ImGui::BeginDisabled(!re4t::cfg->bFixDisplayMode);
-						ImGui::InputInt("Hz", &re4t::cfg->iCustomRefreshRate);
-						ImGui::EndDisabled();
-						ImGui::PopItemWidth();
-
-						if (ImGui::IsItemEdited())
+						if (ImGui::Checkbox("OnlyShowHighestRefreshRates", &re4t::cfg->bOnlyShowHighestRefreshRates))
 						{
 							re4t::cfg->HasUnsavedChanges = true;
 							NeedsToRestart = true;
 						}
-
-						ImGui::Spacing();
-
-						ImGui::TextWrapped("Determines a custom refresh rate for the game to use.");
-						ImGui::TextWrapped("Requires FixDisplayMode to be enabled.");
-						ImGui::TextWrapped("-1 will make it try to use the current refresh rate as reported by Windows.");
+						ImGui::TextWrapped("When using FixDisplayMode, only display the highest refresh rate available for each resolution in the game's config menu.");
+						ImGui::EndDisabled();
 					}
 
 					// OverrideLaserColor
@@ -737,13 +728,37 @@ void cfgMenuRender()
 						if (ImGui::Checkbox("WindowBorderless", &re4t::cfg->bWindowBorderless))
 						{
 							re4t::cfg->HasUnsavedChanges = true;
-							NeedsToRestart = true;
+
+							// Trigger resolution change to apply changes
+							if (!*bio4::g_D3D::Fullscreen)
+							{
+								bio4::D3D_SetupResolution(*bio4::g_D3D::Width_1, *bio4::g_D3D::Height_1);
+								bio4::ScreenReSize(0x200, 0x1C0);
+							}
 						}
 
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
 						ImGui::TextWrapped("Whether to use a borderless-window when using windowed-mode.");
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui_ItemSeparator2();
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+
+						if (ImGui::Checkbox("EnableWindowResize", &re4t::cfg->bEnableWindowResize))
+						{
+							re4t::cfg->HasUnsavedChanges = true;
+
+							// Trigger resolution change to apply changes
+							if (!*bio4::g_D3D::Fullscreen)
+							{
+								bio4::D3D_SetupResolution(*bio4::g_D3D::Width_1, *bio4::g_D3D::Height_1);
+								bio4::ScreenReSize(0x200, 0x1C0);
+							}
+						}
+
+						ImGui::TextWrapped("When playing in windowed mode, allow the game window to be resized by dragging the window borders.");
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
 						ImGui_ItemSeparator2();
@@ -761,8 +776,94 @@ void cfgMenuRender()
 						ImGui::EndDisabled();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("RememberWindowPos", &re4t::cfg->bRememberWindowPos);
+						if (ImGui::Checkbox("RememberWindowPos", &re4t::cfg->bRememberWindowPos))
+						{
+							re4t::cfg->HasUnsavedChanges = true;
+
+							if (re4t::cfg->bRememberWindowPos)
+							{
+								RECT rect;
+								GetWindowRect(hWindow, &rect);
+
+								re4t::cfg->iWindowPositionX = rect.left;
+								re4t::cfg->iWindowPositionY = rect.top;
+							}
+						}
 						ImGui::TextWrapped("Remember the last window position. This automatically updates the \"X Pos\" and \"Y Pos\" values above.");
+					}
+
+					if ((OptionsFilter.PassFilter("RepositionHUD Offset") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						// Reposition HUD
+						if (ImGui::Checkbox("RepositionHUD", &re4t::cfg->bRepositionHUD))
+						{
+							re4t::cfg->HasUnsavedChanges = true;
+							if (re4t::cfg->bRepositionHUD)
+								re4t::HUDTweaks::UpdateHUDOffsets();
+							else if (re4t::cfg->fHUDOffsetX || re4t::cfg->fHUDOffsetY)
+								re4t::HUDTweaks::ResetLifeMeter();
+						}
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Move the life meter HUD relative to its default position.");
+						ImGui::TextWrapped("(Hold Ctrl to make larger adjustments)");
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::BeginDisabled(!re4t::cfg->bRepositionHUD);
+						ImGui::PushItemWidth(150 * re4t::cfg->fFontSizeScale * esHook._cur_monitor_dpi);
+						if (ImGui::InputFloat("X Offset", &re4t::cfg->fHUDOffsetX, 0.1f, 1.0f))
+						{
+							re4t::cfg->HasUnsavedChanges = true;
+							re4t::HUDTweaks::UpdateHUDOffsets();
+						}
+						if (ImGui::InputFloat("Y Offset", &re4t::cfg->fHUDOffsetY, 0.1f, 1.0f))
+						{
+							re4t::cfg->HasUnsavedChanges = true;
+							re4t::HUDTweaks::UpdateHUDOffsets();
+						}
+						ImGui::PopItemWidth();
+						ImGui::EndDisabled();
+					}
+
+					if ((OptionsFilter.PassFilter("SmallerHUD SmallerActionPrompts") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						//SmallerHUD 
+						if (ImGui::Checkbox("SmallerHUD", &re4t::cfg->bSmallerHUD))
+						{
+							re4t::cfg->HasUnsavedChanges = true;
+							re4t::HUDTweaks::ResetLifeMeter();
+						}
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Makes the life meter HUD smaller.");
+
+						// SmallerActionPrompts
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("SmallerActionPrompts", &re4t::cfg->bSmallerActionPrompts);
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Makes interact button and QTE prompts smaller.");
+					}
+
+					// HideZoomControlHints 
+					if ((OptionsFilter.PassFilter("HideZoomControlHints Rifle Scope Binoculars") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("HideZoomControlHints", &re4t::cfg->bHideZoomControlHints);
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Hides zoom control reminders from the weapon scope and binocular HUDs.");
 					}
 
 					ImGui_ColumnFinish();
@@ -1135,6 +1236,19 @@ void cfgMenuRender()
 							re4t::cfg->fXinputDeadzone = 1.0f;
 					}
 
+					// SmoothAnalogTurning
+					if ((OptionsFilter.PassFilter("SmoothAnalogTurning") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("SmoothAnalogTurning", &re4t::cfg->bSmoothAnalogTurning);
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Use analog directional input to turn when moving forwards and backwards, similar to Resident Evil 5's type A/B controls.");
+					}
+
 					// AllowReloadWithoutAiming_controller
 					if ((OptionsFilter.PassFilter("AllowReloadWithoutAiming") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
@@ -1375,8 +1489,8 @@ void cfgMenuRender()
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("Unlocks minor difficulty boosts previously exclusive to all North American console versions of RE4.");
-						ImGui::TextWrapped("Higher starting adaptive difficulty, more difficult Ada missions, and a more difficult Mercenaries village stage.");
+						ImGui::TextWrapped("Unlocks minor difficulty modifiers previously exclusive to the North American console versions of RE4.");
+						ImGui::TextWrapped("Higher starting adaptive difficulty in Normal mode and Separate Ways, higher fixed difficulty in Assignment Ada, and unlocked dynamic difficulty in the Mercenaries village stage.");
 						ImGui::TextWrapped("Bottle caps require 3000 points in the shooting gallery, and Easy difficulty is removed from the title menu.");
 					}
 
@@ -1411,6 +1525,27 @@ void cfgMenuRender()
 						ImGui::TextWrapped("Allows selling the (normally unused) handgun silencer to the merchant.");
 					}
 
+					// BalancedChicagoTypewriter
+					if ((OptionsFilter.PassFilter("BalancedChicagoTypewriter") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						if (ImGui::Checkbox("BalancedChicagoTypewriter", &re4t::cfg->bBalancedChicagoTypewriter))
+						{
+							re4t::cfg->HasUnsavedChanges = true;
+							NeedsToRestart = true;
+						}
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Changes how Leon's Chicago Typewriter works:");
+						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("Chicago Typewriter ammo can now drop from dead enemies if the weapon is in the player's inventory.");
+						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("No longer has unlimited ammo by default. Now, unlimited ammo is part of it's exclusive upgrade.");
+						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("Fire power greatly reduced. When fully upgraded, it reaches it's vanilla fire power (10).");
+						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("Upgrades for it are now available in the Merchant, and all levels should be already unlocked by default.");
+					}
+
 					// FixDitmanGlitch
 					if ((OptionsFilter.PassFilter("FixDitmanGlitch") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
@@ -1435,6 +1570,19 @@ void cfgMenuRender()
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
 						ImGui::TextWrapped("Changes sprint key to act like a toggle instead of needing to be held.");
+					}
+
+					// DisableAutomaticReload
+					if ((OptionsFilter.PassFilter("DisableAutomaticReload") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("DisableAutomaticReload", &re4t::cfg->bDisableAutomaticReload);
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Disables automatic reload when firing a weapon that's out of ammo.");
 					}
 
 					// RifleScreenShake
@@ -1697,6 +1845,32 @@ void cfgMenuRender()
 						ImGui::TextWrapped("Speeds up the unnecessarily slow screen fade that takes place after you press \"Quit\" in the game's main menu.");
 					}
 
+					// AlwaysShowOriginalTitleBackground
+					if ((OptionsFilter.PassFilter("AlwaysShowOriginalTitleBackground") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("AlwaysShowOriginalTitleBackground", &re4t::cfg->bAlwaysShowOriginalTitleBackground);
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("After beating the game, force the game to always show the original main menu background image of Leon and Ashley.");
+					}
+
+					// FixSilencedHandgunDescription
+					if ((OptionsFilter.PassFilter("FixSilencedHandgunDescription Silencer") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("FixSilencedHandgunDescription", &re4t::cfg->bFixSilencedHandgunDescription);
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Updates the silenced handgun's item description to only mention increased critical hit chance when the handgun is fully upgraded.");
+					}
+
 					// EnableDebugMenu
 					if ((OptionsFilter.PassFilter("EnableDebugMenu") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
@@ -1727,20 +1901,7 @@ void cfgMenuRender()
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("Displays the game's original logs/debug output into a console window. (F2 by default)");					
-					}
-
-					// AlwaysShowOriginalTitleBackground
-					if ((OptionsFilter.PassFilter("AlwaysShowOriginalTitleBackground") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
-					{
-						ImGui_ColumnSwitch();
-
-						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("AlwaysShowOriginalTitleBackground", &re4t::cfg->bAlwaysShowOriginalTitleBackground);
-
-						ImGui_ItemSeparator();
-
-						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("After beating the game, force the game to always show the original main menu background image of Leon and Ashley.");
+						ImGui::TextWrapped("Displays the game's original logs/debug output into a console window. (F2 by default)");
 					}
 
 					ImGui_ColumnFinish();
@@ -1820,14 +1981,13 @@ void cfgMenuRender()
 				{
 					ImGui::TableNextColumn();
 
-					static float bgHeight = 0;
-					ImGui_ItemBG(bgHeight, itmbgColor);
-
+					ImGui_BeginBackground();
+					ImGui::BeginGroup();
 					ImGui::TextWrapped("Key combinations for various re4_tweaks features.");
 					ImGui::TextWrapped("Most keys can be combined (requiring multiple to be pressed at the same time). To combine, hold one key and press another at the same time.");
 					ImGui::TextWrapped("(Press \"Save\" for changes to take effect.)");
-
-					bgHeight = ImGui::GetCursorPos().y;
+					ImGui::EndGroup();
+					ImGui_EndBackground();
 
 					ImGui::EndTable();
 				}

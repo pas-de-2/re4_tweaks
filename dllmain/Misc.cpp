@@ -6,8 +6,6 @@
 #include "Settings.h"
 #include "input.hpp"
 
-static uint32_t* ptrGameFrameRate;
-
 // Trainer.cpp externs
 extern std::optional<uint32_t> FlagsExtraValue;
 
@@ -528,6 +526,28 @@ uint16_t* GetEtcFlgPtr_Hook(uint32_t etc_no, uint16_t room_no)
 	return ret;
 }
 
+void (__cdecl* itemCaption)(ITEM_ID a1);
+void __cdecl BuyMenuSelect__move_itemCaption_hook(ITEM_ID a1)
+{
+	if (a1 == (ITEM_ID)EItemId::Thompson && re4t::cfg->bBalancedChicagoTypewriter)
+		a1 = (ITEM_ID)EItemId::Ada_Machine_Gun;
+
+	itemCaption(a1);
+}
+
+cItem SsItemExamine__move_cItem;
+bool(__fastcall* MesSet)(MessageControl* thisptr, void* unused, uint32_t num, int px, int py, uint32_t attr, int wk, uint8_t col, int font_no);
+bool __fastcall SsItemExamine__move_MesSet_hook(MessageControl* thisptr, void* unused, uint32_t num, int px, int py, uint32_t attr, int wk, uint8_t col, int font_no)
+{
+	if (num == (ITEM_ID)EItemId::Thompson && !SsItemExamine__move_cItem.specialTuned() && re4t::cfg->bBalancedChicagoTypewriter)
+		num = (ITEM_ID)EItemId::Ada_Machine_Gun;
+
+	if (num == (ITEM_ID)EItemId::Ruger_SA && !SsItemExamine__move_cItem.specialTuned() && re4t::cfg->bFixSilencedHandgunDescription)
+		num = (ITEM_ID)EItemId::Ruger;
+
+	return MesSet(thisptr, nullptr, num, px, py, attr, wk, col, font_no);
+}
+
 void re4t::init::Misc()
 {
 	// Hooks to allow reloading without aiming
@@ -969,7 +989,6 @@ void re4t::init::Misc()
 	{
 		// Hook function to read the FPS value from config.ini
 		auto pattern = hook::pattern("89 0D ? ? ? ? 0F 95 ? 88 15 ? ? ? ? D9 1D ? ? ? ? A3 ? ? ? ? DB 46 ? D9 1D ? ? ? ? 8B 4E ? 89 0D ? ? ? ? 8B 4D ? 5E");
-		ptrGameFrameRate = *pattern.count(1).get(0).get<uint32_t*>(2);
 		struct ReadFPS
 		{
 			void operator()(injector::reg_pack& regs)
@@ -998,11 +1017,11 @@ void re4t::init::Misc()
 					MessageBoxA(NULL, Msg.c_str(), "re4_tweaks", MB_ICONERROR | MB_SYSTEMMODAL | MB_SETFOREGROUND);
 
 					// Use new FPS value
-					*(int32_t*)(ptrGameFrameRate) = intNewFPS;
+					SetGameVariableFrameRate(intNewFPS);
 				}
 				else {
 					// Use .ini FPS value.
-					*(int32_t*)(ptrGameFrameRate) = intIniFPS;
+					SetGameVariableFrameRate(intIniFPS);
 				}
 			}
 		}; injector::MakeInline<ReadFPS>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(6));
@@ -1224,6 +1243,79 @@ void re4t::init::Misc()
 		*g_item_price_tbl_num += 1;
 
 		spd::log()->info("AllowSellingHandgunSilencer enabled");
+	}
+
+	// Fix some item descriptions in the merchant and examine subscreens
+	// Silenced Handgun: display "A standard 9mm handgun" when it has less than max firepower
+	// Leon's Chicago Typewriter: display "This machinegun is outfitted with a powerful .45 caliber magazine" when it has less than max capacity
+	{
+		// SellMenuSelect::move
+		auto pattern = hook::pattern("8B F0 E8 ? ? ? ? 0F b7 D0 52");
+		struct GetMsgID_hook
+		{
+			void operator()(injector::reg_pack& regs)
+			{
+				cItem item = *(cItem*)regs.eax;
+
+				// reimplimentation of getMsgID
+				switch ((EItemId)item.id_0)
+				{
+				case EItemId::FN57:
+					if (item.specialTuned())
+						item.id_0 = 256;
+					break;
+				case EItemId::Ruger:
+					if (item.specialTuned())
+						item.id_0 = 257;
+					break;
+				case EItemId::Shotgun:
+					if (item.specialTuned())
+						item.id_0 = 258;
+					break;
+				case EItemId::Mine:
+					if (item.specialTuned())
+						item.id_0 = 259;
+					break;
+				case EItemId::SW500:
+					if (item.specialTuned())
+						item.id_0 = 260;
+					break;
+				case EItemId::Thompson:
+					if (!item.specialTuned() && re4t::cfg->bBalancedChicagoTypewriter)
+						item.id_0 = (ITEM_ID)EItemId::Ada_Machine_Gun;
+					break;
+				}
+
+				regs.eax = item.id_0;
+			}
+		}; injector::MakeInline<GetMsgID_hook>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(7));
+
+		// LvUpMenuSelect::move
+		pattern = hook::pattern("8B F0 E8 ? ? ? ? 8B ? ? 0F B7 C0");
+		injector::MakeInline<GetMsgID_hook>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(7));
+
+		// BuyMenuSelect::move
+		pattern = hook::pattern("0F B7 10 52 E8 ? ? ? ? 83");
+		ReadCall(pattern.count(1).get(0).get<uint8_t>(4), itemCaption);
+		InjectHook(pattern.count(1).get(0).get<uint32_t>(4), BuyMenuSelect__move_itemCaption_hook);
+
+		// SsItemExamine::move
+		pattern = hook::pattern("0F B7 46 06 8B D0 C1");
+		struct SsItemExamine__move_SavecItem
+		{
+			void operator()(injector::reg_pack& regs)
+			{
+				// capture cItem so we can check its upgrade status
+				SsItemExamine__move_cItem = *(cItem*)regs.esi;
+
+				// code we overwrote
+				regs.eax = *(uint32_t*)(regs.esi + 0x6);
+				regs.edx = regs.eax;
+			}
+		}; injector::MakeInline<SsItemExamine__move_SavecItem>(pattern.count(1).get(0).get<uint32_t>(0), pattern.count(1).get(0).get<uint32_t>(6));
+		pattern = hook::pattern("68 84 00 02 00 51 53");
+		ReadCall(pattern.count(1).get(0).get<uint8_t>(13), MesSet);
+		InjectHook(pattern.count(1).get(0).get<uint32_t>(13), SsItemExamine__move_MesSet_hook, PATCH_CALL);
 	}
 
 	// Allow physics to apply to tactical vest outfit

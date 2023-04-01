@@ -5,6 +5,7 @@
 #include "imgui\imgui.h"
 #include "input.hpp"
 #include "Utils.h"
+#include <FAhashes.h>
 
 ConsoleOutput con;
 
@@ -52,12 +53,12 @@ void ConsoleOutput::Render()
         #ifdef VERBOSE
         if (ImGui::CollapsingHeader("Debug"))
         {
-            ImGui::SliderFloat("fdbg1", &re4t::cfg->fdbg1, -200.0f, 200.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SliderFloat("fdbg2", &re4t::cfg->fdbg2, -200.0f, 200.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SliderFloat("fdbg3", &re4t::cfg->fdbg3, -200.0f, 200.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SliderFloat("fdbg4", &re4t::cfg->fdbg4, -200.0f, 200.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SliderFloat("fdbg5", &re4t::cfg->fdbg5, -200.0f, 200.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SliderFloat("fdbg6", &re4t::cfg->fdbg6, -200.0f, 200.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderFloat("fdbg1", &re4t::cfg->fdbg1, -255.0f, 255.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderFloat("fdbg2", &re4t::cfg->fdbg2, -255.0f, 255.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderFloat("fdbg3", &re4t::cfg->fdbg3, -255.0f, 255.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderFloat("fdbg4", &re4t::cfg->fdbg4, -255.0f, 255.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderFloat("fdbg5", &re4t::cfg->fdbg5, -255.0f, 255.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderFloat("fdbg6", &re4t::cfg->fdbg6, -255.0f, 255.0f, "%.4f", ImGuiSliderFlags_AlwaysClamp);
 
             ImGui::Spacing();
 
@@ -88,12 +89,19 @@ void ConsoleOutput::Render()
                 bool clear = ImGui::Button("Clear");
                 ImGui::SameLine();
                 bool copy = ImGui::Button("Copy");
+
                 ImGui::SameLine();
                 ImGui::Dummy(ImVec2(20 * esHook._cur_monitor_dpi, 0));
                 ImGui::SameLine();
-                Filter.Draw("Filter", -70.0f);
+
+                // Search bar
+                ImGui::PushID("#consolefilter");
+                static const std::string searchLabel = ICON_FA_SEARCH + std::string(" Search");
+                Filter.Draw2(searchLabel.c_str(), -50.0f);
+                ImGui::PopID();
+
                 ImGui::SameLine();
-                if (ImGui::SmallButton("X"))
+                if (ImGui::SmallButton(ICON_FA_BACKSPACE))
                     Filter.Clear();
 
                 ImGui::BeginChild("scrolling1", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
@@ -148,9 +156,15 @@ void ConsoleOutput::Render()
                 ImGui::SameLine();
                 ImGui::Dummy(ImVec2(20 * esHook._cur_monitor_dpi, 0));
                 ImGui::SameLine();
-                Filter_game.Draw("Filter", -70.0f);
+
+                // Search bar
+                ImGui::PushID("#game_consolefilter");
+                static const std::string searchLabel = ICON_FA_SEARCH + std::string(" Search");
+                Filter_game.Draw2(searchLabel.c_str(), -50.0f);
+                ImGui::PopID();
+
                 ImGui::SameLine();
-                if (ImGui::SmallButton("X"))
+                if (ImGui::SmallButton(ICON_FA_BACKSPACE))
                     Filter_game.Clear();
 
                 ImGui::BeginChild("scrolling2", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
@@ -210,14 +224,12 @@ void __cdecl OSReport_hook(const char* msg, ...)
         buffer[strlen(buffer) - 1] = '\0';
     }
 
+    spd::log()->info("OSReport: {}", buffer);
     con.gameLog("OSReport: %s", buffer);
 }
 
 void OSPanic_nullsub_hook(const char* file, int line, const char* message, ...)
 {
-    if (!re4t::cfg->bShowGameOutput)
-        return;
-
     va_list args;
     char buffer[1024];
 
@@ -232,14 +244,12 @@ void OSPanic_nullsub_hook(const char* file, int line, const char* message, ...)
         buffer[strlen(buffer) - 1] = '\0';
     }
 
+    spd::log()->error("OSPanic: File: {}, Line: {}, Message: {}", file, line, buffer);
     con.gameLog("OSPanic: File: %s, Line: %d, Message: %s", file, line, buffer);
 }
 
 void cLog__err_nullsubver_hook(uint32_t flag, uint32_t errId, char* mes, ...)
 {
-    if (!re4t::cfg->bShowGameOutput)
-        return;
-
     va_list args;
     char buffer[1024];
 
@@ -254,14 +264,12 @@ void cLog__err_nullsubver_hook(uint32_t flag, uint32_t errId, char* mes, ...)
         buffer[strlen(buffer) - 1] = '\0';
     }
 
+    spd::log()->error("cLog::err: Flag: {}, errId: {}, Message: {}", flag, errId, buffer);
     con.gameLog("cLog::err: Flag: %d, errId: %d, Message: %s", flag, errId, buffer);
 }
 
 void cLog__err_1_hook(int a1, int a2, const char* message, ...)
 {
-    if (!re4t::cfg->bShowGameOutput)
-        return;
-
     va_list args;
     char buffer[1024];
 
@@ -276,6 +284,7 @@ void cLog__err_1_hook(int a1, int a2, const char* message, ...)
         buffer[strlen(buffer) - 1] = '\0';
     }
 
+    spd::log()->error("cLog::err_1: {}", buffer);
     con.gameLog("cLog::err_1: %s", buffer);
 }
 

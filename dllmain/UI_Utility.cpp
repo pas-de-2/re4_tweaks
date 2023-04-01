@@ -1,13 +1,14 @@
 #include "dllmain.h"
 #include "UI_Utility.h"
 #include "input.hpp"
+#include <stack>
 #include "ConsoleWnd.h"
 #include "Settings.h"
 #include <imgui/imgui_internal.h>
 
 MenuTab Tab = MenuTab::Display;
 TrainerTab CurTrainerTab = TrainerTab::Patches;
-ImGuiTextFilter OptionsFilter;
+ImGuiTextFilterCustom OptionsFilter;
 
 void ImGui_ItemSeparator()
 {
@@ -29,6 +30,18 @@ void ImGui_ItemSeparator2()
 	drawList->AddRectFilled(ImVec2(p0.x, p0.y), ImVec2(p0.x + ImGui::GetContentRegionAvail().x, p0.y + 3), ImColor(150, 10, 40));
 }
 
+// Customized version that puts the label inside the inputbox
+bool ImGuiTextFilterCustom::Draw2(const char* label, float width) {
+	if (width != 0.0f)
+		ImGui::SetNextItemWidth(width);
+
+	std::string id = std::string("##Input_") += label;
+	bool value_changed = ImGui::InputTextWithHint(id.c_str(), label, InputBuf, IM_ARRAYSIZE(InputBuf));
+	if (value_changed)
+		Build();
+	return value_changed;
+}
+
 ImColor itmbgColor = ImColor(25, 20, 20, 166);
 int itemIdx = -1;
 
@@ -43,18 +56,47 @@ void ImGui_ColumnInit()
 	ImGui::TableNextColumn();
 }
 
-std::vector<float> bgHeightsPerTab[int(MenuTab::NumTabs)]; // item heights, per-tab
+std::stack<ImDrawListSplitter> bgSplitters;
+
+// ImGui_BeginBackground & ImGui_EndBackground:
+// Draw a background behind/below an item (or an ImGui Group) by splitting the drawList.
+// Supports nested background inside of each other.
+void ImGui_BeginBackground()
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	bgSplitters.emplace();
+	bgSplitters.top().Split(drawList, 2);
+	bgSplitters.top().SetCurrentChannel(drawList, 1);
+}
+
+void ImGui_EndBackground(float extraMargin, float rounding, bool fillX, ImColor bgCol)
+{
+	if (bgSplitters.empty())
+		return;
+
+	ImVec2 groupMin = ImGui::GetItemRectMin();
+	ImVec2 groupMax = ImGui::GetItemRectMax();
+
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+	if (fillX)
+		groupMax.x = groupMin.x + ImGui::GetContentRegionAvail().x;
+
+	bgSplitters.top().SetCurrentChannel(drawList, 0);
+
+	drawList->AddRectFilled(ImVec2(groupMin.x - extraMargin, groupMin.y - extraMargin), ImVec2(groupMax.x + extraMargin, groupMax.y + extraMargin), bgCol, rounding, ImDrawCornerFlags_All);
+
+	bgSplitters.top().Merge(drawList);
+	bgSplitters.top().Clear();
+	bgSplitters.pop();
+}
+
 void ImGui_ColumnSwitch()
 {
-	auto& bgHeights = bgHeightsPerTab[int(Tab)];
 	if (itemIdx >= 0)
 	{
-		// Store bgheight of previous item, so we can use it as a BG height.
-		// (ImGui really should have a way to simply get the current row/cell height of a table instead...
-		if (bgHeights.size() > size_t(itemIdx))
-			bgHeights[itemIdx] = ImGui::GetCursorPos().y;
-		else
-			bgHeights.push_back(ImGui::GetCursorPos().y);
+		ImGui::EndGroup();
+		ImGui_EndBackground();
 
 		ImGui::Dummy(ImVec2(10, 25));
 		columnLastY[ImGui::TableGetColumnIndex()] = ImGui::GetCursorPos().y;
@@ -72,40 +114,18 @@ void ImGui_ColumnSwitch()
 	if (itemIdx > (ImGui::TableGetColumnCount() - 1))
 		ImGui::SetCursorPosY(columnLastY[ImGui::TableGetColumnIndex()]);
 
-	float bgHeight = 0;
-	if (bgHeights.size() > size_t(itemIdx))
-		bgHeight = bgHeights[itemIdx];
-	else
-		bgHeight = 0;
-
-	ImGui_ItemBG(bgHeight, itmbgColor);
+	ImGui_BeginBackground();
+	ImGui::BeginGroup();
 }
 
 void ImGui_ColumnFinish()
 {
-	if (itemIdx >= 0)
-	{
-		auto& bgHeights = bgHeightsPerTab[int(Tab)];
+	if (itemIdx <= -1)
+		return;
 
-		// Store bgheight of previous item
-		if (bgHeights.size() > size_t(itemIdx))
-			bgHeights[itemIdx] = ImGui::GetCursorPos().y;
-		else
-			bgHeights.push_back(ImGui::GetCursorPos().y);
-	}
-
+	ImGui::EndGroup();
+	ImGui_EndBackground();
 	ImGui::Dummy(ImVec2(10, 25));
-}
-
-void ImGui_ItemBG(float RowSize, ImColor bgCol)
-{
-	// Works best when used inside a table
-
-	ImDrawList* drawList = ImGui::GetWindowDrawList();
-	ImVec2 p0 = ImGui::GetCursorScreenPos();
-	float top = ImGui::GetCursorPosY();
-
-	drawList->AddRectFilled(ImVec2(p0.x - 10, p0.y - 10), ImVec2(p0.x + 10 + ImGui::GetContentRegionAvail().x, p0.y + RowSize - top + 7), bgCol, 5.f);
 }
 
 void ImGui_SetHotkey(std::string* cfgHotkey, bool supportsCombo)
@@ -204,7 +224,7 @@ void ImGui_SetHotkeyThread(std::string* cfgHotkey)
 }
 
 bool ImGui_ButtonSameLine(const char* label, bool samelinecheck, float offset,
-	const ImVec2 size)
+	const ImVec2& size)
 {
 	bool ret = ImGui::Button(label, size);
 
@@ -226,8 +246,8 @@ bool ImGui_ButtonSameLine(const char* label, bool samelinecheck, float offset,
 }
 
 bool ImGui_TabButton(const char* btnID, const char* text, const ImVec4& activeCol,
-	const ImVec4& inactiveCol, MenuTab tabID, const char* icon, const ImColor iconColor,
-	const ImColor textColor, const ImVec2& size)
+	const ImVec4& inactiveCol, MenuTab tabID, const char* icon, const ImColor& iconColor,
+	const ImColor& textColor, const ImVec2& size)
 {
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 
@@ -248,16 +268,17 @@ bool ImGui_TabButton(const char* btnID, const char* text, const ImVec4& activeCo
 	drawList->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(p0.x + text_pos_x, p0.y + text_pos_y), textColor, text, NULL, 0.0f, &ImVec4(p0.x, p0.y, p1.x, p1.y));
 
 	if (ret)
+	{
 		Tab = tabID;
-
-	OptionsFilter.Clear();
+		OptionsFilter.Clear();
+	}
 
 	return ret;
 }
 
 bool ImGui_TrainerTabButton(const char* btnID, const char* text, const ImVec4& activeCol,
-	const ImVec4& inactiveCol, TrainerTab tabID, const char* icon, const ImColor iconColor,
-	const ImColor textColor, const ImVec2& size, const bool samelinecheck)
+	const ImVec4& inactiveCol, TrainerTab tabID, const char* icon, const ImColor& iconColor,
+	const ImColor& textColor, const ImVec2& size, const bool samelinecheck)
 {
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 
