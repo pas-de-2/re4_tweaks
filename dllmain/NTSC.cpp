@@ -473,9 +473,9 @@ void re4t::init::NTSC()
 		// Matilda has a slower rate of burst fire
 		pattern = hook::pattern("E8 ? ? ? ? 83 C4 08 84 C0 74 ? 83 BE");
 		ReadCall(pattern.count(1).get(0).get<uint8_t>(0), MotionCheckCrossFrame);
-		InjectHook(pattern.count(1).get(0).get<uint32_t>(0), wep17_r3_fire10_MotionCheckCrossFrame_hook1, PATCH_CALL);
+		InjectHook(pattern.count(1).get(0).get<uint32_t>(0), wep17_r3_fire10_MotionCheckCrossFrame_hook1, HookType::Call);
 		pattern = hook::pattern("E8 ? ? ? ? 83 C4 08 84 C0 74 ? 8B 8E D8 07 00 00 C7");
-		InjectHook(pattern.count(1).get(0).get<uint32_t>(0), wep17_r3_fire10_MotionCheckCrossFrame_hook2, PATCH_CALL);
+		InjectHook(pattern.count(1).get(0).get<uint32_t>(0), wep17_r3_fire10_MotionCheckCrossFrame_hook2, HookType::Call);
 
 		// Mine Thrower mines take 5 seconds to explode (vs 3 seconds in UHD)
 		pattern = hook::pattern("D9 9E 24 04 00 00 D9 E8 D9");
@@ -502,7 +502,7 @@ void re4t::init::NTSC()
 		level_null = *pattern.count(1).get(0).get<LEVEL_INFO(*)[1]>(27);
 		pattern = hook::pattern("6A 00 50 B9 ? ? ? ? E8 ? ? ? ? 84 C0 0F ? ? ? ? ? 6A 00 68 ? ? ? ? 68 ? ? ? ? E8 ? ? ? ? 6A 00 68 ? ? ? ? EB");
 		ReadCall(pattern.count(3).get(1).get<uint8_t>(33), levelDataAdd);
-		InjectHook(pattern.count(3).get(1).get<uint32_t>(33), levelDataAdd_r229, PATCH_CALL);
+		InjectHook(pattern.count(3).get(1).get<uint32_t>(33), levelDataAdd_r229, HookType::Call);
 
 		// U3 takes full damage from magnum weapons (vs 50% in UHD)
 		pattern = hook::pattern("8A 8E 2E 03 00 00 80 E9 05 83");
@@ -518,7 +518,7 @@ void re4t::init::NTSC()
 
 			// hook GetBulletPoint to use the old GetBulletPoint calculation
 			auto pattern = hook::pattern("F7 F9 8A DA E8 ? ? ? ? 89");
-			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(4)).as_int(), GetBulletPoint_gc, PATCH_JUMP);
+			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(4)).as_int(), GetBulletPoint_gc, HookType::Jump);
 
 			// Gold chance is always 20% (UHD is 17% in Chapter 1, 20% afterwards)
 			pattern = hook::pattern("B1 11 3A D9 0F");
@@ -582,7 +582,7 @@ void re4t::init::NTSC()
 			// hook GetDropBullet with a reimplementation of the GC GetDropBullet code
 			pattern = hook::pattern("53 57 E8 ? ? ? ? 83 C4 08 85 C0 0F ? ? ? ? ? 8B ? ? ? ? ? 8B 42 54");
 			//ReadCall(injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(2)).as_int(), GetDropBullet_orig);
-			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(2)).as_int(), GetDropBullet_gc, PATCH_JUMP);
+			InjectHook(injector::GetBranchDestination(pattern.count(1).get(0).get<uint32_t>(2)).as_int(), GetDropBullet_gc, HookType::Jump);
 
 			// UHD tries to generate pesetas if no ammo or recovery item was spawned. skip this by returning out of RandomItemCk early
 			pattern = hook::pattern("5F 5E 33 C0 5B 8B E5 5D C3 E8");
