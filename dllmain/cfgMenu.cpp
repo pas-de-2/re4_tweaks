@@ -1449,17 +1449,17 @@ void cfgMenuRender()
 				{
 					ImGui_ColumnInit();
 
-					// AshleyJPCameraAngles
-					if ((OptionsFilter.PassFilter("AshleyJPCameraAngles") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					// UseSprintToggle
+					if ((OptionsFilter.PassFilter("UseSprintToggle") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
 						ImGui_ColumnSwitch();
 
-						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("AshleyJPCameraAngles", &re4t::cfg->bAshleyJPCameraAngles);
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("UseSprintToggle", &re4t::cfg->bUseSprintToggle);
 
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("Unlocks the JP-only classic camera angles during Ashley segment.");
+						ImGui::TextWrapped("Changes sprint key to act like a toggle instead of needing to be held.");
 					}
 
 					// SeparateWaysProfessional
@@ -1494,6 +1494,19 @@ void cfgMenuRender()
 						ImGui::TextWrapped("Bottle caps require 3000 points in the shooting gallery, and Easy difficulty is removed from the title menu.");
 					}
 
+					// AshleyJPCameraAngles
+					if ((OptionsFilter.PassFilter("AshleyJPCameraAngles") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("AshleyJPCameraAngles", &re4t::cfg->bAshleyJPCameraAngles);
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Unlocks the JP-only classic camera angles during Ashley segment.");
+					}
+
 					// AllowAshleySuplex
 					if ((OptionsFilter.PassFilter("AllowAshleySuplex") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
@@ -1508,68 +1521,89 @@ void cfgMenuRender()
 						ImGui::TextWrapped("(previously was only possible in the initial NTSC GameCube ver., was patched out in all later ports.)");
 					}
 
-					// AllowSellingHandgunSilencer
-					if ((OptionsFilter.PassFilter("AllowSellingHandgunSilencer") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					// RevertWiiKnifeBuff
+					if ((OptionsFilter.PassFilter("RevertWiiKnifeBuff Disable") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
 						ImGui_ColumnSwitch();
 
-						if (ImGui::Checkbox("AllowSellingHandgunSilencer", &re4t::cfg->bAllowSellingHandgunSilencer))
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("RevertWiiKnifeBuff", &re4t::cfg->bRevertWiiKnifeBuff);
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+
+						ImGui::TextWrapped("Reverts the 30%% damage buff given to the knife since the Wii port.");
+					}
+
+					// DisableAdaKnife
+					if ((OptionsFilter.PassFilter("DisableAdaKnife") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						if (re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("DisableAdaKnife", &re4t::cfg->bDisableAdaKnife))
 						{
 							re4t::cfg->HasUnsavedChanges = true;
-							NeedsToRestart = true;
+
+							if (GlobalPtr()->pl_type_4FC8 == PlayerCharacter::Ada)
+							{
+								bool isSeparateWays = FlagIsSet(GlobalPtr()->Flags_SYSTEM_0_54, uint32_t(Flags_SYSTEM::SYS_PS2_ADA_GAME));
+								if (!isSeparateWays)
+									GlobalPtr()->joyLKamaeRelated_847D = re4t::cfg->bDisableAdaKnife;
+							}
 						}
 
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("Allows selling the (normally unused) handgun silencer to the merchant.");
+
+						ImGui::TextWrapped("Disables Ada's knife in Assignment Ada and Mercenaries. Ada didn't originally have a knife in these modes until the Wii port.");
 					}
 
-					// BalancedChicagoTypewriter
-					if ((OptionsFilter.PassFilter("BalancedChicagoTypewriter") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					// NAGameCubeBalance
+					if ((OptionsFilter.PassFilter("NAGameCubeBalance NTSC") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
 						ImGui_ColumnSwitch();
 
-						if (ImGui::Checkbox("BalancedChicagoTypewriter", &re4t::cfg->bBalancedChicagoTypewriter))
+						if (ImGui::Checkbox("NAGameCubeBalance", &re4t::cfg->bNAGameCubeBalance))
 						{
 							re4t::cfg->HasUnsavedChanges = true;
 							NeedsToRestart = true;
 						}
-
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("Changes how Leon's Chicago Typewriter works:");
-						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("Chicago Typewriter ammo can now drop from dead enemies if the weapon is in the player's inventory.");
-						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("No longer has unlimited ammo by default. Now, unlimited ammo is part of it's exclusive upgrade.");
-						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("Fire power greatly reduced. When fully upgraded, it reaches it's vanilla fire power (10).");
-						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("Upgrades for it are now available in the Merchant, and all levels should be already unlocked by default.");
+
+						ImGui::TextWrapped("Emulates the game balance found in the original North American GameCube revision of RE4. "
+							"Reverts weapon stats, merchant prices, and item drop rates. Automatically enables NTSC mode and RevertWiiKnifeBuff.");
+						ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.51f, 0.00f, 0.14f, 0.00f));
+						ImGui::SmallButton(ICON_FA_QUESTION_CIRCLE);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip(
+								"Notable changes:\n"
+								" -  Ammo drops more often and Pesetas drop less often\n"
+								" -  The Knife does 60%% less damage\n"
+								" -  The TMP does 30%% less damage to Ganados and 25%% more damage to El Gigante\n"
+								" -  The Red9, Blacktail, and Rifle exclusive upgrades are weaker\n"
+								" -  The Handgun exclusive upgrade is stronger\n"
+								" -  Matilda has a slower rate of burst fire, and Mine Thrower mines take 2 seconds longer to detonate\n"
+								" -  The Merchant's First Aid Spray stock is not dynamic\n"
+								" -  First Aid Sprays, Treasure Maps, the TMP, Striker, Killer7, and Mine Thrower are more expensive");
+						ImGui::PopStyleColor();
 					}
 
-					// FixDitmanGlitch
-					if ((OptionsFilter.PassFilter("FixDitmanGlitch") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+
+					// RifleScreenShake
+					if ((OptionsFilter.PassFilter("RifleScreenShake") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
 						ImGui_ColumnSwitch();
 
-						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("FixDitmanGlitch", &re4t::cfg->bFixDitmanGlitch);
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("RifleScreenShake", &re4t::cfg->bRifleScreenShake);
 
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("Fixes the Ditman glitch, which would allow players to increase their walk speed.");
-					}
 
-					// UseSprintToggle
-					if ((OptionsFilter.PassFilter("UseSprintToggle") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
-					{
-						ImGui_ColumnSwitch();
-
-						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("UseSprintToggle", &re4t::cfg->bUseSprintToggle);
-
-						ImGui_ItemSeparator();
-
-						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-						ImGui::TextWrapped("Changes sprint key to act like a toggle instead of needing to be held.");
+						ImGui::TextWrapped("Adds a screen shake effect when firing a rifle.");
 					}
 
 					// DisableAutomaticReload
@@ -1585,18 +1619,17 @@ void cfgMenuRender()
 						ImGui::TextWrapped("Disables automatic reload when firing a weapon that's out of ammo.");
 					}
 
-					// RifleScreenShake
-					if ((OptionsFilter.PassFilter("RifleScreenShake") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					// FixDitmanGlitch
+					if ((OptionsFilter.PassFilter("FixDitmanGlitch") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
 						ImGui_ColumnSwitch();
 
-						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("RifleScreenShake", &re4t::cfg->bRifleScreenShake);
+						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("FixDitmanGlitch", &re4t::cfg->bFixDitmanGlitch);
 
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-
-						ImGui::TextWrapped("Adds a screen shake effect when firing a rifle.");
+						ImGui::TextWrapped("Fixes the Ditman glitch, which would allow players to increase their walk speed.");
 					}
 
 					// QTE options
@@ -1646,74 +1679,42 @@ void cfgMenuRender()
 						ImGui::TextWrapped("Limit the Matilda to one three round burst per trigger pull.");
 					}
 
-					// DisableAdaKnife
-					if ((OptionsFilter.PassFilter("DisableAdaKnife") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					// AllowSellingHandgunSilencer
+					if ((OptionsFilter.PassFilter("AllowSellingHandgunSilencer") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
 					{
 						ImGui_ColumnSwitch();
 
-						if (re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("DisableAdaKnife", &re4t::cfg->bDisableAdaKnife))
-						{
-							re4t::cfg->HasUnsavedChanges = true;
-
-							if (GlobalPtr()->pl_type_4FC8 == PlayerCharacter::Ada)
-							{
-								bool isSeparateWays = FlagIsSet(GlobalPtr()->Flags_SYSTEM_0_54, uint32_t(Flags_SYSTEM::SYS_PS2_ADA_GAME));
-								if (!isSeparateWays)
-									GlobalPtr()->joyLKamaeRelated_847D = re4t::cfg->bDisableAdaKnife;
-							}
-						}
-
-						ImGui_ItemSeparator();
-
-						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-
-						ImGui::TextWrapped("Disables Ada's knife in Assignment Ada and Mercenaries. Ada didn't originally have a knife in these modes until the Wii port.");
-					}
-
-					// RevertWiiKnifeBuff
-					if ((OptionsFilter.PassFilter("RevertWiiKnifeBuff Disable") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
-					{
-						ImGui_ColumnSwitch();
-
-						re4t::cfg->HasUnsavedChanges |= ImGui::Checkbox("RevertWiiKnifeBuff", &re4t::cfg->bRevertWiiKnifeBuff);
-
-						ImGui_ItemSeparator();
-
-						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
-
-						ImGui::TextWrapped("Reverts the 30%% damage buff given to the knife since the Wii port.");
-					}
-
-					// NAGameCubeBalance
-					if ((OptionsFilter.PassFilter("NAGameCubeBalance NTSC") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
-					{
-						ImGui_ColumnSwitch();
-
-						if (ImGui::Checkbox("NAGameCubeBalance", &re4t::cfg->bNAGameCubeBalance))
+						if (ImGui::Checkbox("AllowSellingHandgunSilencer", &re4t::cfg->bAllowSellingHandgunSilencer))
 						{
 							re4t::cfg->HasUnsavedChanges = true;
 							NeedsToRestart = true;
 						}
+
 						ImGui_ItemSeparator();
 
 						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Allows selling the (normally unused) handgun silencer to the merchant.");
+					}
 
-						ImGui::TextWrapped("Emulates the game balance found in the original North American GameCube release of RE4. "
-							"Reverts weapon stats, merchant prices, and item drop rates. Automatically enables NTSC mode.");
-						ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.51f, 0.00f, 0.14f, 0.00f));
-						ImGui::SmallButton(ICON_FA_QUESTION_CIRCLE);
-						if (ImGui::IsItemHovered())
-							ImGui::SetTooltip(
-								"Notable changes:\n"
-								" -  Ammo drops more often and Pesetas drop less often\n"
-								" -  The Knife does 60%% less damage\n"
-								" -  The TMP does 30%% less damage to Ganados and 25%% more damage to El Gigante\n"
-								" -  The Red9, Blacktail, and Rifle exclusive upgrades are weaker\n"
-								" -  The Handgun exclusive upgrade is stronger\n"
-								" -  Matilda has a slower rate of burst fire, and Mine Thrower mines take 2 seconds longer to detonate\n"
-								" -  The Merchant's First Aid Spray stock is not dynamic\n"
-								" -  First Aid Sprays, Treasure Maps, the TMP, Striker, Killer7, and Mine Thrower are more expensive");
-						ImGui::PopStyleColor();
+					// BalancedChicagoTypewriter
+					if ((OptionsFilter.PassFilter("BalancedChicagoTypewriter") && OptionsFilter.IsActive()) || !OptionsFilter.IsActive())
+					{
+						ImGui_ColumnSwitch();
+
+						if (ImGui::Checkbox("BalancedChicagoTypewriter", &re4t::cfg->bBalancedChicagoTypewriter))
+						{
+							re4t::cfg->HasUnsavedChanges = true;
+							NeedsToRestart = true;
+						}
+
+						ImGui_ItemSeparator();
+
+						ImGui::Dummy(ImVec2(10, 10 * esHook._cur_monitor_dpi));
+						ImGui::TextWrapped("Changes how Leon's Chicago Typewriter works:");
+						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("Chicago Typewriter ammo can now drop from dead enemies if the weapon is in the player's inventory.");
+						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("No longer has unlimited ammo by default. Now, unlimited ammo is part of it's exclusive upgrade.");
+						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("Fire power greatly reduced. When fully upgraded, it reaches it's vanilla fire power (10).");
+						ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("Upgrades for it are now available in the Merchant, and all levels should be already unlocked by default.");
 					}
 
 					ImGui_ColumnFinish();
