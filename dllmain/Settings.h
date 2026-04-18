@@ -27,6 +27,7 @@ public:
 	//=//=//
 	// DISPLAY
 	float fFOVAdditional = 0.0f;
+	float fCameraSmoothing = 100.0f;
 	bool bEnableFOV = false;
 	bool bDisableVsync = false;
 	bool bUltraWideAspectSupport = true;
@@ -116,7 +117,7 @@ public:
 	// GAMEPLAY
 	bool bAshleyJPCameraAngles = false;
 	bool bSeparateWaysProfessional = true;
-	bool bEnableNTSCMode = true;
+	bool bEnableNTSCMode = false;
 	bool bAllowAshleySuplex = false;
 	bool bFixDitmanGlitch = false;
 	bool bAllowSellingHandgunSilencer = true;

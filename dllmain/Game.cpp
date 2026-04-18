@@ -2,6 +2,7 @@
 #include "Game.h"
 #include "ConsoleWnd.h"
 #include "SDK/filter00.h"
+#include "Sections.h"
 #include <deque>
 
 std::string gameVersion;
@@ -11,6 +12,7 @@ SND_CTRL* Snd_ctrl_work = nullptr; // extern inside Game.h
 SUB_SCREEN* SubScreenWk = nullptr; // extern inside sscrn.h
 pzlPlayer__ptrPiece_Fn pzlPlayer__ptrPiece = nullptr; // extern inside puzzle.h
 CameraControl* CamCtrl = nullptr; // extern inside cam_ctrl.h
+CameraSmooth* CamSmth = nullptr; // extern inside cam_ctrl.h
 cPlayer__subScrCheck_Fn cPlayer__subScrCheck = nullptr; // extern inside player.h
 j_j_j_FadeSet_Fn j_j_j_FadeSet = nullptr; // extern inside fade.h
 uint32_t* cSofdec = nullptr;
@@ -583,7 +585,7 @@ bool IsGanado(int id) // same as games IsGanado func
 {
 	if (id == 0x4B || id == 0x4E)
 		return 0;
-	if ((unsigned int)(id - 0x40) <= 0xF)
+	if (id >= 0x40 && id <= 0x4F)
 		return 1;
 	if (id < 0x10)
 		return 0;
@@ -706,6 +708,22 @@ void Game_ScheduleInMainThread(std::function<void()> function)
 
 	std::unique_lock<std::mutex> pending_functions_lock(game_pendingMainThreadFuncsMutex);
 	game_pendingMainThreadFuncs.emplace_back(std::move(function));
+}
+
+const float CamSmoothRatioOrig = 0.80000001f;
+float CamSmoothRatioNew = CamSmoothRatioOrig; // Game is patched to make CameraQuasiFPS::init read from this
+void Game_SetCameraSmoothness(float scale)
+{
+	CamSmoothRatioNew = CamSmoothRatioOrig * scale;
+
+	if (CamCtrl)
+		CamCtrl->m_QuasiFPS_278.m_walk_ratio_1B0 = CamSmoothRatioNew;
+	if (CamSmth)
+		CamSmth->m_ratio_FC = CamSmoothRatioNew;
+}
+float Game_GetCameraSmoothness()
+{
+	return CamSmoothRatioNew;
 }
 
 void InventoryItemAdd(ITEM_ID id, uint32_t count, bool always_show_inv_ui, bool handle_attache_case)
@@ -1050,7 +1068,7 @@ bool re4t::init::Game()
 	// (game doesn't store this in a global, so we need to capture it...)
 	pattern = hook::pattern("6A 0D 6A 01 6A 00 6A 00 68 BC 00 00 00 E8");
 	ReadCall(pattern.count(1).get(0).get<uint8_t>(0xD), mem_calloc);
-	InjectHook(pattern.count(1).get(0).get<uint8_t>(0xD), mem_calloc_TITLE_WORK_hook, PATCH_CALL);
+	InjectHook(pattern.count(1).get(0).get<uint8_t>(0xD), mem_calloc_TITLE_WORK_hook, HookType::Call);
 
 	// pointer to FadeWork
 	pattern = hook::pattern("68 ? ? ? ? E8 ? ? ? ? D9 EE D9 15 ? ? ? ? 83 C4 08 ");
@@ -1059,7 +1077,7 @@ bool re4t::init::Game()
 	// Mem_free call for TITLE_WORK, so we can set to nullptr once game frees it
 	pattern = hook::pattern("56 E8 ? ? ? ? 6A 01 E8 ? ? ? ? 68 C0 01 00 00");
 	ReadCall(pattern.count(1).get(0).get<uint8_t>(0x1), Mem_free);
-	InjectHook(pattern.count(1).get(0).get<uint8_t>(0x1), Mem_free_TITLE_WORK_hook, PATCH_CALL);
+	InjectHook(pattern.count(1).get(0).get<uint8_t>(0x1), Mem_free_TITLE_WORK_hook, HookType::Call);
 
 	// LightMgr pointer
 	pattern = hook::pattern("6A 00 53 6A 00 57 B9 ? ? ? ?");
@@ -1106,7 +1124,7 @@ bool re4t::init::Game()
 	pattern = hook::pattern("74 ? B9 ? ? ? ? E8 ? ? ? ? B9 ? ? ? ? E8 ? ? ? ? E8");
 	auto cSceSys__scheduler_thunk = injector::GetBranchDestination(pattern.count(1).get(0).get<uint8_t>(17));
 	ReadCall(cSceSys__scheduler_thunk.as_int(), cSceSys__scheduler);
-	InjectHook(cSceSys__scheduler_thunk.as_int(), cSceSys__scheduler_Hook, PATCH_JUMP);
+	InjectHook(cSceSys__scheduler_thunk.as_int(), cSceSys__scheduler_Hook, HookType::Jump);
 
 	// WeaponChange funcptr
 	pattern = hook::pattern("6A 01 E8 ? ? ? ? 83 C4 04 E8 ? ? ? ? F6");
@@ -1205,9 +1223,17 @@ bool re4t::init::Game()
 	pattern = hook::pattern("80 B9 FC 00 00 00 00 75 ? 8A 81 FD 00 00 00");
 	cPlayer__subScrCheck = (cPlayer__subScrCheck_Fn)pattern.count(1).get(0).get<uint32_t>(0);
 
+	// CamSmth ptr
+	pattern = hook::pattern("56 B9 ? ? ? ? E8 ? ? ? ? 8D 53 60");
+	CamSmth = *pattern.count(1).get(0).get<CameraSmooth*>(2);
+
 	// CamCtrl ptr
 	pattern = hook::pattern("D9 EE B9 ? ? ? ? D9 9E A4 00 00 00 E8 ? ? ? ? D9 EE");
 	CamCtrl = *pattern.count(1).get(0).get<CameraControl*>(3);
+
+	// Patch CameraQuasiFPS::init to use our CamSmoothRatioNew value
+	pattern = hook::pattern("D9 05 ? ? ? ? 56 8B F1 D9 96 B0 01 00 00");
+	injector::WriteMemory<float*>(pattern.count(1).get(0).get<float*>(2), &CamSmoothRatioNew, true);
 
 	// Sofdec ptr
 	pattern = hook::pattern("B9 ? ? ? ? C6 86 1F 05 00 00 01");

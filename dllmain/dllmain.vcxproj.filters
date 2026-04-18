@@ -598,6 +598,9 @@
     <ClCompile Include="NTSC.cpp">
       <Filter>dllmain</Filter>
     </ClCompile>
+    <ClCompile Include="Sections.cpp">
+      <Filter>dllmain</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\external\injector\include\injector\assembly.hpp">
@@ -1702,6 +1705,9 @@
       <Filter>dllmain</Filter>
     </ClInclude>
     <ClInclude Include="NTSC.h">
+      <Filter>dllmain</Filter>
+    </ClInclude>
+    <ClInclude Include="Sections.h">
       <Filter>dllmain</Filter>
     </ClInclude>
   </ItemGroup>
