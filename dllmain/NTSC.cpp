@@ -95,7 +95,6 @@ uint32_t __cdecl GetBulletPoint_gc()
 		+ (ItemMgr->bulletNumTotal((ITEM_ID)EItemId::Bullet_Arrow == 0) ? 0 : 5);
 }
 
-//BOOL(__cdecl* GetDropBullet_orig)(uint32_t* ret_id, uint32_t* ret_num);
 BOOL __cdecl GetDropBullet_gc(uint32_t* ret_id, uint32_t* ret_num)
 {
 	auto dropItem = [&](EItemId itemId, int stackSize = 0)
@@ -168,6 +167,7 @@ BOOL __cdecl GetDropBullet_gc(uint32_t* ret_id, uint32_t* ret_num)
 		{
 			if (result < 25)
 				return dropItem(EItemId::Bullet_9mm_H);
+            // bug in the original game logic? magnum ammo doesn't return early, so rifle ammo always overwrites it
 			//if (result < 70)
 			//	dropItem(EItemId::Bullet_45in_H, bio4::Rnd() % 10 < 8 ? 2 : 5);
 			if (result >= 80)
@@ -179,13 +179,12 @@ BOOL __cdecl GetDropBullet_gc(uint32_t* ret_id, uint32_t* ret_num)
 				else
 					return dropItem(EItemId::Grenade);
 			}
-			// bug in the original game logic? magnum ammo doesn't return early, so rifle ammo always overwrites it
 			else
 				return dropItem(EItemId::Bullet_223in, bio4::Rnd() % 10 < 8 ? 3 : 5);
 		}
 	}
 
-	result = bio4::Rnd() % 100;
+	// If we got to this point, we must be in the campaign or Separate Ways
 
 	int curHandgunAmmo = ItemMgr->num((ITEM_ID)EItemId::Bullet_9mm_H);
 
@@ -227,7 +226,7 @@ BOOL __cdecl GetDropBullet_gc(uint32_t* ret_id, uint32_t* ret_num)
 
 		if (result - 90 < 10)
 		{
-			// attempt at support for Separate Ways
+			// there was no Separate Ways in this version of the game, so add support for the Bowgun
 			if (isSeparateWays && hasBowgun && bio4::Rnd() % 100 < 75)
 				return dropItem(EItemId::Bullet_Bow_Gun, 1);
 
