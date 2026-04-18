@@ -1602,7 +1602,7 @@ void cfgMenuRender()
 						ImGui::SmallButton(ICON_FA_QUESTION_CIRCLE);
 						if (ImGui::IsItemHovered())
 							ImGui::SetTooltip(
-								"Notable changes:\n"
+								"Notable differences:\n"
 								" -  Ammo drops more often and Pesetas drop less often\n"
 								" -  The Knife does 60%% less damage\n"
 								" -  The TMP does 30%% less damage to Ganados and 25%% more damage to El Gigante\n"
@@ -1610,7 +1610,8 @@ void cfgMenuRender()
 								" -  The Handgun exclusive upgrade is stronger\n"
 								" -  Matilda has a slower rate of burst fire, and Mine Thrower mines take 2 seconds longer to detonate\n"
 								" -  The Merchant's First Aid Spray stock is not dynamic\n"
-								" -  First Aid Sprays, Treasure Maps, the TMP, Striker, Killer7, and Mine Thrower are more expensive");
+								" -  First Aid Sprays, Treasure Maps, the TMP, and Mine Thrower are more expensive\n"
+							    " -  The Striker and Killer7 are cheaper");
 						ImGui::PopStyleColor();
 					}
 
